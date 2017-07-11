@@ -16,6 +16,7 @@ Another difference is that Tabletop Grace has all its scripts located
 in the script folder, whereas Tiled Grace uses the root directory.
 
 Original Tiled Grace readme follows:
+=========================================================================
 
 Tiled Grace integrates tiled and textual editing of code
 
