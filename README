@@ -11,7 +11,7 @@ GitHub:
 
 The readme from Tiled Grace follows as much of the information is still
 relevant. One caveat is that Tabletop Grace is recommended to be run in
-Goolge Chrome only and even then the following setting:
+Google Chrome only and even then the following setting:
 chrome://flags/#overscroll-history-navigation
 must be set to disabled.
 This prevents touch actions from causing page swiping, i.e. forward and back.
