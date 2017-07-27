@@ -4,25 +4,139 @@ var windowColors = ["red", "blue", "yellow", "green"];
 var windows = [];
 var windowCount = 0;
 var windowMax = 4;
+var alt = 0;
+var depth = 5;
+var scaled = 0;
+var expanded = 0;
 
-function createWindow() {
+/* function createWindow() {
   var iframe = document.createElement('iframe');
   iframe.setAttribute('src', window.location.pathname);
   document.body.appendChild(iframe);
   iframe.style.top = "30px";
   iframe.style.left = "30px";
+  iframe.rot = 0;
 
-}
+} */
 
 function runTest() {
   addBlockWindow(null, 0);
-  addOutputWindow();    
+  addOutputWindow();
 }
 
-function scaleWindow(s) {
-  
-  
+function testScaleWindow(s) {
+  scaleWindow(s,windows[0]);
 }
+
+function propComparator(prop) {
+    return function(a, b) {
+        return a[prop] - b[prop];
+    }
+}
+
+function bringToFront(t) {
+  var f = window.frameElement || t;
+  var topDepth = depth + windowCount - 1;
+
+  console.log("Windows: " + windows.length);
+
+  if (f.depth != topDepth) {
+    var tmp = windows.slice();
+    tmp.sort(propComparator('depth'));
+    console.log("Top Element: " + tmp[0].depth);
+    var depthTracker = depth;
+    for (var i = 0; i < tmp.length; i++) {
+      if (tmp[i].idx == f.idx) {
+        tmp[i].depth = topDepth;
+      } else {
+        if (tmp[i].depth > depthTracker) {
+          tmp[i].depth--;
+        }
+        depthTracker++;
+      }
+      tmp[i].style.zIndex = tmp[i].depth;
+    }
+  }
+}
+
+function expandOutput() {  
+  var c = document.getElementById("codearea");
+  var o = document.getElementById("outputarea");
+  var b = document.getElementById("expand-button");
+  if (expanded == 0) {
+    c.style.width = "70%";
+    o.style.width = "30%";
+    b.value = ">";
+    expanded = 1;
+  } else {
+    c.style.width = "99%";
+    o.style.width = "1%";
+    b.value = "<";
+    expanded = 0;
+  }
+}
+
+function clearOutput() {
+  var c = document.getElementById("standard-canvas");
+  var t = document.getElementById("stdout_txt");
+  t.value = "";
+  var context = c.getContext("2d");
+  context.clearRect(0, 0, c.width, c.height);
+}
+
+function scaleWindow(s,t) {
+  var f = window.frameElement || t;
+  // console.log("Window: " + f);
+  if (f) {
+    var w, h, l, t;
+    if (!scaled) {
+      w = f.offsetWidth;
+      h = f.offsetHeight;
+      l = f.offsetLeft;
+      t = f.offsetTop;
+      scaled = 1;
+    } else {
+      w = parseFloat(f.style.width);
+      h = parseFloat(f.style.height);
+      l = parseFloat(f.style.left);
+      t = parseFloat(f.style.top);
+      console.log("Scale: " + w + "," + h + "," + l + "," + t);
+    }
+
+    f.style.width = w + s + "px";
+    f.style.height = h + s + "px";
+    // console.log("WH: " + w + "," + h + " - " + f.style.width + "," + f.style.height);
+
+    f.style.left = (l - s *.5) + "px";
+    f.style.top = (t - s *.5) + "px";
+  }
+}
+
+function testRotateWindow(s) {
+  rotateWindow(s,windows[0]);
+}
+
+function rotateWindow(s,t) {
+  var f = window.frameElement || t;
+  // console.log("Window: " + f);
+  if (f) {
+    if (isNaN(f.rot)) {
+      f.rot = 0;
+    }
+    var r = f.rot + s;
+    f.style.transform = "rotate(" + r + "deg)";
+    while (r > 360) {
+      r -= 360;
+    }
+    while (r < -360) {
+      r += 360;
+    }
+    // console.log("R:" + f.rot + "," + r);
+    f.rot = r;
+  }
+}
+
+
 
 function addBlockWindow(event, id) {
   var w = 1920/1080;
@@ -36,8 +150,10 @@ function addBlockWindow(event, id) {
       iframe.style.left = "15%";
       iframe.style.width = "70%";
       iframe.style.height = "80%";
+      iframe.rot = 0;
       if (id == 3) {
         iframe.style.transform = "rotate(180deg)";
+        iframe.rot = 180;
       }
     } else {
       iframe.style.top = "-20%";
@@ -46,16 +162,19 @@ function addBlockWindow(event, id) {
       iframe.style.height = (80 * w) + "%";
       if (id == 1) {
         iframe.style.transform = "rotate(90deg)";
+        iframe.rot = 90;
       }
       if (id == 2) {
         iframe.style.transform = "rotate(-90deg)";
+        iframe.rot = -90;
       }
 
     }
     iframe.idx = windowCount;
     windows[windowCount] = iframe;
+    iframe.depth = depth + windowCount;
+    iframe.style.zIndex = iframe.depth;
     windowCount++;
-
   } else {
     //Max windows reached...
   }
@@ -89,14 +208,6 @@ function testWidget2() {
   }
 }
 
-function convertToH(elem) {
-
-}
-
-function convertToW(elem) {
-
-}
-
 function closeWindowMenu(id) {
   windowMenu[id].parentNode.removeChild(windowMenu[id]);
   windowMenu[id] = null;
@@ -109,28 +220,24 @@ var mw2 = 250;
 var mh = 40;    //Half
 var mh2 = 80;
 
-function showWindowMenu(event) {
+function showWindowMenu(id,x,y) {
+// function showWindowMenu(event) {
   //#Remove
-  addBlockWindow(null,0);
-  if (true) { return; }  
+  // addBlockWindow(null,0);
+  // if (true) { return; }
 
   // var target = event.target;
   //0 Bottom: bottom: 50px, left: 50%, margin-left: -125px
   //1 Left: top: 50%, margin-top: -5px, left: -70px, transform: rotate(90deg)
   //2 Right: -90deg, left -> right
   //3 Top: 180deg, bottom -> top
-  var target = event.target;
-  while (target.tagName != "svg") {
-    target = target.parentNode;
-  }
-  var x = event.clientX;
-  var y = event.clientY;
+  var target = document.getElementById("svg_" + id);;
   var m = document.createElement("div");
   m.className = "window_menu";
   var id = parseInt(target.getAttribute('id').slice(-1));
-  if (windowMenu[id]) {
-    return closeWindowMenu(id);
-  }
+  // if (windowMenu[id]) {
+    // return closeWindowMenu(id);
+  // }
   var w = window.innerWidth;
   var h = window.innerHeight;
   console.log(w + "," + h);
@@ -152,7 +259,7 @@ function showWindowMenu(event) {
     y = y;
     var xy = x * wh;
     var wy = mw * wh;
-    var wy2 = wy - mh;    
+    var wy2 = wy - mh;
     // var yMin = 15 + (mw * wh - mh);
     var yMin = 15 + mw;
     var yMax = h - 5 - mw;
@@ -273,7 +380,7 @@ function createWidget2() {
     // img.style.maxHeight = "100%";
     // div.appendChild(img);
     addWidgetTouch(div);
-    
+
     vars[i].style.borderTop = "gold solid 2px";
 
     var marker = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -282,13 +389,13 @@ function createWidget2() {
     box.appendChild(marker);
     // if (box.parentNode.classList.contains("hole")) {
       // marker.style.position = "relative";
-      // marker.style.left = "calc(-50% + 13px)";      
+      // marker.style.left = "calc(-50% + 13px)";
     // } else {
       marker.style.position = "absolute";
       marker.style.left = "50%";
     // }
     marker.style.top = "-10px";
-    
+
     var newElement = document.createElementNS("http://www.w3.org/2000/svg", 'polygon'); //Create a path in SVG's namespace
     newElement.setAttribute("points", "0,10 15,0 30 10");
     // newElement.setAttribute("cx", 15);
@@ -312,7 +419,7 @@ function createWidget2() {
     anim.setAttribute("repeatCount", "indefinite");
     // newElement.appendChild(anim);
 
-    
+
     // marker.style.top = "50%";
 
   }

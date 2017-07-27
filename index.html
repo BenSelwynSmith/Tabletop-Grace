@@ -7,23 +7,19 @@
  </head>
  <body>
     <div style="width:100%; height:100%; background:ash; position:relative">
-      <svg id="svg_0" width="100%" height="12px" style="position:absolute; left:0px; bottom:-2px;z-index:50;"
-      onclick="showWindowMenu(evt)" >
+      <svg id="svg_0" width="100%" height="12px" style="position:absolute; left:0px; bottom:-2px;z-index:50;">
         <rect x=0 y=0 width=100% height=100% fill=black />
         <rect x=1.5% y=20% width=97% height=20% fill=grey />
       </svg>
-      <svg id="svg_1" width="10px" height="100%" style="position:absolute; left:-2px; bottom:0px;z-index:50;"
-      onclick="showWindowMenu(evt)" >
+      <svg id="svg_1" width="10px" height="100%" style="position:absolute; left:-2px; bottom:0px;z-index:50;">
         <rect x=0 y=0 width=100% height=100% fill=black />
         <rect x=50% y=2% width=20% height=96% fill=grey />
       </svg>
-      <svg id="svg_2" width="10px" height="100%" style="position:absolute; right:-2px; bottom:0px;z-index:50;"
-      onclick="showWindowMenu(evt)" >
+      <svg id="svg_2" width="10px" height="100%" style="position:absolute; right:-2px; bottom:0px;z-index:50;">
         <rect x=0 y=0 width=100% height=100% fill=black />
         <rect x=30% y=2% width=20% height=96% fill=grey />
       </svg>
-      <svg id="svg_3" width="100%" height="12px" style="position:absolute; left:0px; top:-2px; bottom:0px;z-index:50;"
-      onclick="showWindowMenu(evt)" >
+      <svg id="svg_3" width="100%" height="12px" style="position:absolute; left:0px; top:-2px; bottom:0px;z-index:50;">
         <rect x=0 y=0 width=100% height=100% fill=black />
         <rect x=1.5% y=50% width=97% height=20% fill=grey />
       </svg>
@@ -34,5 +30,7 @@
         font-family:Arial; position:absolute; left:50%; margin-left:-100px;">Drag Edge to Start</p>
     </div>
     <script type="text/javascript" src="scripts/windows.js"></script>
+    <script type="text/javascript" src="scripts/touch.js"></script>
+    <script>addWMenuTouch();</script>
  </body>
 </html>

@@ -8,15 +8,30 @@ var windowTouches = {};
 var optTouches = {};
 var btnTouches = {};
 var windowMenuTouches = {};
+var segmentTouches = {};
 
-var pieMenuMoveThresholdCount = 3;
-var pieMenuMoveThresholdDistance = 2;
+//Squared distance in pixels
+var pieMenuMoveThresholdCount = 10;
+var pieMenuMoveThresholdDistance = 40;
+var wMenuThresholdDistance = 50;
 var optMoveThresholdDistance = 2;
 var btnMoveThresholdDistance = 2;
+var segMoveThresholdDistance = 20;
 var currentFocus;
 
 var interactMode = 0;
 var moveCounter = 0;
+
+var toDeg = (180 / Math.PI);
+var t1v;
+var t2v;
+var lastAngle;
+var lastRot;
+
+var tileZIndex = 5;
+var tileLastZIndex = tileZIndex;
+var tileMaxZIndex = 1000;
+
 
 function enableTouch() {
   //#TODO ?? Replace with prevent default on pie menu including all segments
@@ -26,7 +41,27 @@ function enableTouch() {
   if (window.frameElement) {
     //This is running in an iframe, this is intended behaviour so don't load scripts otherwise
     addPieTouch();
-    addTileTouch();
+    addTileTouch(); 
+  }
+}
+
+
+
+function setTilesZIndex() {
+  //Give all tiles a zindex
+  for (var i = 0; i < tiles.length; i++) {
+    tiles[i].style.zIndex = tileZIndex;
+  }
+}
+
+function tileBringToFront(tile) {
+  if (tile.style.zIndex == tileLastZIndex && tileLastZIndex != tileZIndex) { return; }
+  tileLastZIndex++;
+  tile.style.zIndex = tileLastZIndex;
+  if (tileLastZIndex > tileMaxZIndex) {
+    setTilesZIndex();
+    tileLastZIndex = tileZIndex + 1;
+    tile.style.zIndex = tileLastZIndex;
   }
 }
 
@@ -38,6 +73,10 @@ function addPieTouch() {
   codearea.addEventListener('touchstart', pieTouchStart);
   codearea.addEventListener('touchmove', pieTouchMove);
   codearea.addEventListener('touchend', pieTouchEnd);
+  codearea.addEventListener('click', function(event) { 
+    showPieMenu(event.pageX, event.pageY);
+  });
+  codearea.t1 = codearea.t2 = null;
 }
 
 
@@ -54,6 +93,16 @@ function addButtonTouch(btn, func, src) {
   btn.addEventListener('touchend', btnTouchEnd);
   btn.btnFunc = func;
   btn.btnSrc = src;
+}
+
+function addWMenuTouch() {
+  for (var i = 0; i < 4; i++) {    
+    var id = "svg_" + i;
+    var elem = document.getElementById(id);
+    elem.addEventListener('touchstart', function() { wMenuStart(event); });
+    elem.addEventListener('touchmove', function() { wMenuMove(event); });
+    elem.addEventListener('touchend', function() { wMenuEnd(event); });
+  }
 }
 
 
@@ -82,7 +131,7 @@ function btnTouchMove(event) {
       var y = event.changedTouches[i].clientY;
       var dist = Math.sqrt(Math.pow(x - btnTouches[i].x, 2) + Math.pow(y - btnTouches[i].y, 2));
       if (dist > btnMoveThresholdDistance) {
-        delete btnTouches[id];
+        delete btnTouches[id];        
         continue;
       }
     }
@@ -99,6 +148,100 @@ function btnTouchEnd(event) {
     delete btnTouches[id];
   }
 }
+
+function wMenuStart(event,idx) {  
+  // var idx = ((event.target.getAttribute("id").split("_"));
+  var target = event.target;
+  while (!(target.tagName == "svg") && target.parentNode != null) {
+    target = target.parentNode;
+  }
+  var idx = target.getAttribute("id").split("_")[1];
+
+  // console.log("wMenuStart: " + idx + "," + target);
+  for (var i = 0; i < event.targetTouches.length; i++) {    
+    var id = event.targetTouches[i].identifier;
+
+    if (!(id in windowMenuTouches)) {
+      //New Touch Event
+      event.preventDefault();
+      var x = event.targetTouches[i].clientX;
+      var y = event.targetTouches[i].clientY;
+
+      windowMenuTouches[id] = {x:x, y:y, target:event.target, origin:idx};
+    }
+  }
+}
+
+function wMenuMove(event) {
+  console.log("wMenuMove");
+  for (var i = 0; i < event.changedTouches.length; i++) {
+    var id = event.changedTouches[i].identifier;
+    if (!(id in windowMenuTouches)) { continue; }
+  
+    //Distance check
+    var x = event.changedTouches[i].clientX;
+    var y = event.changedTouches[i].clientY;
+    var dist = Math.sqrt(Math.pow(x - windowMenuTouches[i].x, 2) + Math.pow(y - windowMenuTouches[i].y, 2));
+    if (dist > wMenuThresholdDistance) {
+      if (wMenuCheck(event.changedTouches[i],windowMenuTouches[id])) {
+        showWindowMenu(windowMenuTouches[id].origin,windowMenuTouches[id].x,windowMenuTouches[id].y);
+        delete windowMenuTouches[id];
+      }
+    }
+  
+  }
+}
+
+function wMenuEnd(event) {
+  console.log("wMenuEnd");
+  for (var i = 0; i < event.changedTouches.length; i++) {
+    var id = event.changedTouches[i].identifier;
+    if (!(id in windowMenuTouches)) { continue; }    
+    delete windowMenuTouches[id];
+  }
+}
+
+function wMenuCheck(touchEvent, wMenuTouch) {
+  var x2 = wMenuTouch.x - touchEvent.clientX;
+  var y2 = wMenuTouch.y - touchEvent.clientY;
+  var targetAngle = [90,180,0,-90];
+  var xAngle = Math.atan2(y2,x2) * toDeg;
+  // var yAngle = 90 - xAngle;  
+  var success = 0;
+  var variance = 45;
+  // console.log("xA: " + (xAngle * toDeg));
+  //0 B, 1 L, 2 R, 3 T
+  // 90  180    0  -90
+  if (wMenuTouch.origin == 0) {
+    console.log((targetAngle[0] - variance) + " to " + (targetAngle[0] + variance) + ", actual:" + xAngle);
+    if (targetAngle[0] + variance > xAngle && targetAngle[0] - variance < xAngle) {
+      
+      success = 1;
+    }
+  } else if (wMenuTouch.origin == 1) {
+    console.log((targetAngle[1] - variance) + " to " + (targetAngle[1] + variance) + ", actual:" + xAngle);
+    if (targetAngle[1] + variance > xAngle && targetAngle[1] - variance < xAngle) {
+      
+      success = 1;
+    }
+  } else if (wMenuTouch.origin == 2) {
+    console.log((targetAngle[2] - variance) + " to " + (targetAngle[2] + variance) + ", actual:" + xAngle);
+    if (targetAngle[2] + variance > xAngle && targetAngle[2] - variance < xAngle) {
+      
+      success = 1;
+    }
+  } else if (wMenuTouch.origin == 3) {
+    console.log((targetAngle[3] - variance) + " to " + (targetAngle[3] + variance) + ", actual:" + xAngle);
+    if (targetAngle[3] + variance > xAngle && targetAngle[3] - variance < xAngle) {
+      
+      success = 1;
+    }
+  }
+
+  if (success) { console.log("success"); }
+  return success;
+}
+
 
 
 function optTouchStart(event) {
@@ -145,7 +288,7 @@ function optTouchEnd(event) {
 }
 
 function pieTouchStart(event) {
-  
+  event.preventDefault();
   var menus = codearea.getElementsByClassName('popup-menu');
   if (menus.length) {
     for (var i=0; i<menus.length; i++) {
@@ -153,6 +296,8 @@ function pieTouchStart(event) {
       return;
     }
   }
+
+  window.parent.bringToFront(window.frameElement);
 
   if (currentFocus) {
     currentFocus.blur();
@@ -170,20 +315,48 @@ function pieTouchStart(event) {
       var y = event.targetTouches[i].clientY;
 
       pieMenuTouches[id] = {x:x, y:y, updates:0, ix:window.frameElement.offsetLeft, iy:window.frameElement.offsetTop};
+      pieMenuTouches[id].sx = event.targetTouches[i].screenX;
+      pieMenuTouches[id].sy = event.targetTouches[i].screenY;
+
+      if (codearea.t1 == codearea.t2 == null) {
+        codearea.t1 = id;
+      } else if (codearea.t1 == null) {
+        if (codearea.t2 != id) {
+          codearea.t1 = id;
+        }
+      } else if (codearea.t2 == null) {
+        if (codearea.t1 != id) {
+          codearea.t2 = id;
+        }
+      }
+
+      if (codearea.t2 == codearea.t1) {
+        codearea.t2 = null;
+      }
+
+      /*if (codearea.t1 == null && (codearea.t2 != null || codearea.t2 != id)) {        
+        codearea.t1 = id;
+      } else if (codearea.t2 == null && (codearea.t1 != null || codearea.t1 != id)) {
+        codearea.t2 = id;
+      }*/
+
     }
   }
-  event.preventDefault();
+  // event.preventDefault();
+  console.log("Start: " + codearea.t1 + "," + codearea.t2);
 }
 
 function pieTouchMove(event) {
-  
+  event.preventDefault();
   if (!window.frameElement) { return; }
   for (var i = 0; i < event.changedTouches.length; i++) {
     var id = event.changedTouches[i].identifier;
     if (event.target == codearea && id in pieMenuTouches) {
+      console.log("Move: " + id);
       //Moves check
       if (pieMenuTouches[id].updates > pieMenuMoveThresholdCount) {
         windowTouches[id] = pieMenuTouches[id];
+        // windowTouches[id].alt = 0;
         delete pieMenuTouches[id];
         continue;
       }
@@ -196,24 +369,256 @@ function pieTouchMove(event) {
         windowTouches[id] = pieMenuTouches[id];
         delete pieMenuTouches[id];
         continue;
-
-
       }
 
       pieMenuTouches[id].updates++;
-    } else if (event.target == codearea && id in windowTouches) {
+    }
+  }
+
+  if (codearea.t1 != null && codearea.t2 != null) {
+    //Rotation and scaling
+    var touch1;
+    var touch2;
+    var touch11;
+    var touch21;
+    var id1;
+    var id2;
+    console.log("SR");
+
+    //Find touches
+    for (var i = 0; i < event.touches.length; i++) {
+      if (event.touches[i].identifier == codearea.t1) {
+        touch1 = event.touches[i];
+        id1 = event.touches[i].identfier;
+      }
+      if (event.touches[i].identifier == codearea.t2) {
+        touch2 = event.touches[i];
+        id2 = event.touches[i].identfier;
+      }
+    }
+
+    console.log("SR - T11: " + touch11 + ", T21: " + touch21);
+    // console.log("SR: eventTouches: " + event.touches.length + ", windowTouches: " + windowTouches);
+
+
+    if (touch1 != null && touch2 != null) {      
+      var v1 = [touch1.clientX,touch1.clientY];
+      var v2 = [touch2.clientX,touch2.clientY];
+      console.log("SR0: " + v1[0] + "," + v1[1] + " - " + v2[0] + "," + v2[1]);
+      
+      var start = 0;
+
+      if (t1v == null) {
+        t1v = v1;
+        start = 1;
+      }
+      if (t2v == null) {
+        t2v = v2;
+        start = 1;
+      } 
+
+      if (!start) {
+        //Scaling
+
+        //Vector of last movement
+        var v11 = [v1[0] - t1v[0], v1[1] - t1v[1]];
+        var v21 = [v2[0] - t2v[0], v2[1] - t2v[1]];        
+        //Magnitude
+        var v1m = Math.sqrt(Math.pow(v11[0],2) + Math.pow(v11[1],2));
+        var v2m = Math.sqrt(Math.pow(v21[0],2) + Math.pow(v21[1],2));
+
+        //Vector between new position of both
+        var v0 = [v1[0] - v2[0], v1[1] - v2[1]];
+        var v0m = Math.sqrt(Math.pow(v0[0],2) + Math.pow(v0[1],2));
+
+        //Dot between 1 and 0, and 2 and 0
+        var dot1 = v11[0] * v0[0] + v11[1] * v0[1];
+        var dot2 = v21[0] * v0[0] + v21[1] * v0[1];
+
+        //Angle between v1 and v0, and v2 and v0, in rads
+        var a1 = (dot1 / (v1m * v0m)) * toDeg;
+        var a2 = (dot2 / (v2m * v0m)) * toDeg;
+
+        console.log("SR Angle: " + a1 + "," + a2);
+
+        //Obviously this is not quite right, but it works...
+        //Around 57, -57 = <-- -->
+        //      -57,  57 = --> <--
+        var variance = 15;
+        var scale = 30;
+        var scaled = 0;
+        if (!isNaN(a1) && !isNaN(a2)) {
+          console.log("SR Angle: " +(a1 < 57 + variance && a1 > 57 - variance && a2 > -57 - variance && a2 < -57 + variance) + 
+            "," + (a2 < 57 + variance && a2 > 57 - variance && a1 > -57 - variance && a1 < -57 + variance));
+          if (a1 < 57 + variance && a1 > 57 - variance && a2 > -57 - variance && a2 < -57 + variance) {
+            scaleWindow(scale);
+            scaled = 1;
+          } else if (a2 < 57 + variance && a2 > 57 - variance && a1 > -57 - variance && a1 < -57 + variance) {
+            scaleWindow(-scale);
+            scaled = 1;
+          }
+
+
+          //Rotation
+          var rotScale = 1;
+          var maxRot = 10;
+          if (scaled == 0) {                        
+            var dx = v2[0] - v1[0];
+            var dy = v2[1] - v1[1];
+            var vc1 = [v1[0] - t1v[0], v1[1] - t1v[1]];
+            var vc2 = [v2[0] - t2v[0], v2[1] - t2v[1]];
+            var noChange = 0;
+            if (Math.abs(vc1[0] + vc1[1]) < 2) {
+              noChange = 1;
+            }
+            if (Math.abs(vc2[0] + vc2[1]) < 2) {
+              noChange = 1;
+            }
+
+            //#TODO Fix:
+            //Same formula as scaling, but use line from t1 to t2 compared with previous line
+            //Angular difference between the two is rotation
+            
+            if (noChange == 0) {
+              var newAngle = Math.atan2(dy,dx) * toDeg;
+              var rot = 0;
+              if (lastAngle != null && (lastAngle > 0.1 || lastAngle < -0.1)) {
+                var da = newAngle - lastAngle;
+                rot = da * rotScale;
+                if (rot > maxRot) { rot = maxRot; }
+                if (rot < -maxRot) { rot = -maxRot; }
+
+                
+                if (da > 0.5) {
+                  rotateWindow(rot);
+                } else if (da < -0.5) {
+                  rotateWindow(rot);
+                }            
+                
+              }
+              console.log("SR: Rotate by " + rot + ", L: " + lastAngle + ", N: " + newAngle);
+              lastAngle = newAngle;
+            }
+          }          
+        }
+        //Update new position
+        t1v = v1;
+        t2v = v2;
+      }
+    }
+  } else if (codearea.t1 != null) {        
+    //Dragging (first registered drag touch event)
+    console.log("Drag");
+    for (var i = 0; i < event.touches.length; i++) {
+      if (event.touches[i].identifierd == codearea.t1) {
+        touch1 = event.touches[i];
+      }
+    }
+
+    if (touch1 != null) {
+      console.log("Drag: " + touch1.clientX + "," + touch1.clientY);
+    }
+  }
+
+  /*var v1x = t1.clientX - t1w.x;
+  var v1y = t1.clientY - t1w.y;
+  var v2x = t2.clientX - t2w.x;
+  var v2y = t2.clientY - t2w.y;  
+
+  var v1m = Math.sqrt(Math.pow(v1x,2) + Math.pow(v1y,2));
+  var v2m = Math.sqrt(Math.pow(v2x,2) + Math.pow(v2y,2));
+  
+
+
+  var vx = t2.clientX - t1.clientX;
+  var vy = t2.clientY - t1.clientY;
+  var vm = Math.sqrt(Math.pow(vx,2) + Math.pow(vy,2));
+
+  var dot1 = v1x * vx + v1y * vy;
+  var dot2 = v2x * vx + v2y * vy;
+
+
+  var a1 = dot1 / v1m * vm;
+  var a2 = dot2 / v2m * vm;
+  console.log("ScaleRotate: " + t1.clientX + "," + t1.clientY + " - " + t1w.x + "," + t1w.y + ", 2: " + t2.clientX + "," + t2.clientY + " - " + t2w.x + "," + t2w.y);
+  console.log("ScaleRotate: " + v1x + "," + v1y + " - " + v2x + "," + v2y + " - M: " + v1m + "," + v2m + ", D: " + dot1 + "," + dot2);
+  console.log("ScaleRotate: " + (a1*toDeg) + "," + (a2*toDeg));
+  */
+
+
+
+  /*if (codearea.t1 != null &&) {
+    //Dragging
+  } else if (
+
+
+     else if (event.target == codearea && id in windowTouches) {
       //Moving Canvas
-      var x = event.changedTouches[i].clientX;
-      var y = event.changedTouches[i].clientY;
+      // if (windowTouches[id].alt < 2) {
+        //windowTouches[id].alt++;
+        // continue;
+      // }
+      console.log("Move: " + codearea.t1 + "," + codearea.t2 + "," + id + "," + 
+            (codearea.t1 != null && codearea.t2 != null && codearea.t1 == id));
+      if (id != codearea.t1 && id != codearea.t2) { continue; }
+
+      //Perform calc for both t1 and t2 from t1      
+
+      if (codearea.t1 == id) {
+        var t1 = event.changedTouches[id];        
+        var t2;
+        var t12 = windowTouches[id];
+        var t22;
+
+        var vx = t1.clientX - t12.x;
+        var vy = t1.clientY - t12.y;
+        var xAngle = Math.atan2(vx,vy) * toDeg;
+        console.log("T1 Angle: " + xAngle);
+
+
+        if (codearea.t2 != null) {        
+          t2 = event.touches[codearea.t2];
+          t22 = windowTouches[codearea.t2];  
+          var vx2 = t2.clientX - t22.x;
+          var vy2 = t2.clientY - t22.y;
+          var xAngle2 = Math.atan2(vx2,vy2) * toDeg;
+          console.log("T2 Angle: " + xAngle2);
+        }
+        
+      }
+        
+
+
+
+
+      // if (codearea.t1 != null && codearea.t2 != null && codearea.t1 == id) {
+      //   var t1 = event.changedTouches[id];
+      //   var t2 = event.touches[codearea.t2];
+      //   if (scaleRotate(t1,t2,windowTouches[codearea.t1],windowTouches[codearea.t2])) {
+      //     //
+      //     codearea.changed = 1;          
+      //   } else {
+      //     codearea.changed = 0;
+      //   }
+      //   continue;
+      // }
+
+      // if (id == codearea.t2 && codearea.t1 != null) {
+      //   continue;
+      // }
+
+      var x = event.changedTouches[i].screenX;
+      var y = event.changedTouches[i].screenY;
       var iframe = window.frameElement;
-      var dx = windowTouches[id].x - x;
-      var dy = windowTouches[id].y - y;
+      var dx = windowTouches[id].sx - x;
+      var dy = windowTouches[id].sy - y;
       var l2 = windowTouches[id].ix - dx;
       var t2 = windowTouches[id].iy - dy;
-      // iframe.style.left = (l2) + 'px';
-      // iframe.style.top = (t2) + 'px';      
+      iframe.style.left = (l2) + 'px';
+      iframe.style.top = (t2) + 'px';      
+      console.log("Client: " + x + "," + y +" - Page; " + event.changedTouches[i].screenX + "," + event.changedTouches[i].screenY);
       // console.log("Move: " + l2 + "," + t2 + "," + windowTouches[id].ix + "," + windowTouches[id].iy + "," + x + "," + y + "," + windowTouches[id].x + "," + windowTouches[id].y + ",M:" + moveCounter + ",ID:" + id);
-      window.setTimeout(function () { iframe.style.left = l2 + 'px'; iframe.style.top = t2 + 'px'},5);
+      //window.setTimeout(function () { iframe.style.left = l2 + 'px'; iframe.style.top = t2 + 'px'},5);
       // windowTouches[id].x = x;
       // windowTouches[id].y = y;
       // windowTouches[id].ix = l2;
@@ -221,10 +626,11 @@ function pieTouchMove(event) {
 
       // alert("Moving iframe to " + l2 + "," + t2);
       // alert("Moving iframe to " + (windowTouches[id].ix + dx) + "," + (windowTouches[id].iy + dy));
+      // windowTouches[id].alt = 0;
     }
-  }
+  }*/
   moveCounter++;
-  event.preventDefault();
+  // event.preventDefault();
   // event.stopPropagation();
 }
 
@@ -232,31 +638,99 @@ function pieTouchEnd(event) {
 
   for (var i = 0; i < event.changedTouches.length; i++) {
     var id = event.changedTouches[i].identifier;    
+    console.log("End Touch: " + id + "," + codearea.t1 + "," + codearea.t2 + "," + (codearea.t1 == id) + "," + (codearea.t2 == id));
     if (id in pieMenuTouches) {
       if (event.target == codearea) {
         showPieMenu(pieMenuTouches[id].x,pieMenuTouches[id].y);
       }
       delete pieMenuTouches[id];
     } else if (id in windowTouches) {
-      if (event.target == codearea) {
+      /*if (event.target == codearea) {
+        if (id != codearea.t1 && id != codearea.t2) { continue; }
+
+        //Perform calc for both t1 and t2 from t1
+        //Set codearea var so t2 doesn't do anything
+        if (codearea.t1 != null && codearea.t2 != null && codearea.t1 == id) {
+          var t1 = event.changedTouches[id];
+          var t2 = event.touches[codearea.t2];
+          if (scaleRotate(t1,t2,windowTouches[codearea.t1],windowTouches[codearea.t2])) {
+            //
+          }
+        }
+
         //Moving Canvas
-        var x = event.changedTouches[i].clientX;
-        var y = event.changedTouches[i].clientY;
+        var x = event.changedTouches[i].screenX;
+        var y = event.changedTouches[i].screenY;
         var iframe = window.frameElement;
-        var dx = windowTouches[id].x - x;
-        var dy = windowTouches[id].y - y;
+        var dx = windowTouches[id].sx - x;
+        var dy = windowTouches[id].sy - y;
         var l2 = windowTouches[id].ix - dx;
         var t2 = windowTouches[id].iy - dy;
-        window.setTimeout(function () { iframe.style.left = l2 + 'px'; iframe.style.top = t2 + 'px'},10);
+        window.setTimeout(function () { iframe.style.left = l2 + 'px'; iframe.style.top = t2 + 'px'},10);        
         // iframe.style.left = (l2) + 'px';
         // iframe.style.top = (t2) + 'px';      
         // iframe.left = windowTouches[id].ix + dx;
         // iframe.top = windowTouches[id].iy + dy;
-      }    
+      }*/
+      
       delete windowTouches[id];
     }
+    if (id == codearea.t1) { codearea.t1 = null; t1v = null; lastAngle = null;}
+    if (id == codearea.t2) { codearea.t2 = null; t2v = null; lastAngle = null;}  
+    console.log("End Touch2: " + id + "," + codearea.t1 + "," + codearea.t2 + "," + (codearea.t1 == id) + "," + (codearea.t2 == id)); 
   }
   event.preventDefault();
+}
+
+function scaleRotate(t1,t2,t1w,t2w) {
+  //Scaling
+  //This involves two touch events moving away from each, but to differentiate between
+  //this and rotation, a further check ensures both line are roughly alligned.
+  //e.g.  <-- --> is ok
+  //
+  //     <--
+  //        -->   is not
+  
+  
+  //SQRT ax^2 + ay^2
+
+  // var vx2 = t2w.x - t1w.x;
+  // var vy2 = t2w.y - t1w.y;
+  if (!t2) { return 0; }
+
+
+
+
+  var v1x = t1.clientX - t1w.x;
+  var v1y = t1.clientY - t1w.y;
+  var v2x = t2.clientX - t2w.x;
+  var v2y = t2.clientY - t2w.y;  
+
+  var v1m = Math.sqrt(Math.pow(v1x,2) + Math.pow(v1y,2));
+  var v2m = Math.sqrt(Math.pow(v2x,2) + Math.pow(v2y,2));
+  
+
+
+  var vx = t2.clientX - t1.clientX;
+  var vy = t2.clientY - t1.clientY;
+  var vm = Math.sqrt(Math.pow(vx,2) + Math.pow(vy,2));
+
+  var dot1 = v1x * vx + v1y * vy;
+  var dot2 = v2x * vx + v2y * vy;
+
+
+  var a1 = dot1 / v1m * vm;
+  var a2 = dot2 / v2m * vm;
+  console.log("ScaleRotate: " + t1.clientX + "," + t1.clientY + " - " + t1w.x + "," + t1w.y + ", 2: " + t2.clientX + "," + t2.clientY + " - " + t2w.x + "," + t2w.y);
+  console.log("ScaleRotate: " + v1x + "," + v1y + " - " + v2x + "," + v2y + " - M: " + v1m + "," + v2m + ", D: " + dot1 + "," + dot2);
+  console.log("ScaleRotate: " + (a1*toDeg) + "," + (a2*toDeg));
+  
+  // console.log("ScaleRotate: " + vx + "," + vy + "," + vx2 + "," + vy2 + " - " + dot);
+  // console.log("ScaleRotate dot: " + dot);
+
+
+  //Rotation
+  //This involves two touch events moving away from each e.g. <-- -->
 }
 
 function pieTouchToggle(event) {
@@ -289,6 +763,7 @@ function addTileTouchToTile(tile) {
     tile.addEventListener('touchstart', tileTouchStart);
     tile.addEventListener('touchmove', tileTouchMove);
     tile.addEventListener('touchend', tileTouchEnd);
+    setTilesZIndex();
 }
 
 function addTileTouch() {
@@ -330,6 +805,8 @@ function tileTouchStart(event) {
         target = target.parentNode;
       } else { break; }
     }
+    
+    tileBringToFront(target);
 
     if (!(id in touches)) {
       //New Touch Event

@@ -200,18 +200,24 @@ function showPieMenu(x,y) {
   createPieMenu(svg);
 }
 
+//window.setTimeout(function () { iframe.style.left = l2 + 'px'; iframe.style.top = t2 + 'px'},5);
 
 function closePieMenu(event) {
   var elem = event.target;
 
-  console.log("closePie: " + elem.tagName);
+  // console.log("closePie: " + elem.tagName);
+  //Get containing SVG
   while (elem.tagName != "svg" && elem.parentNode != null) {
     elem = elem.parentNode;
   }
+
+  
+
   var timeDif = Date.now() - elem.getAttribute("ts");
-  console.log("closePie2: " + elem.tagName + ", Time: " + timeDif);  
+  // console.log("closePie2: " + elem.tagName + ", Time: " + timeDif);  
   if (timeDif > closePieDelay) {
-    elem.parentNode.removeChild(elem);
+    window.setTimeout(function() { elem.parentNode.removeChild(elem); },10);
+    // elem.parentNode.removeChild(elem);
   }
 }
 
@@ -333,9 +339,18 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2) {
   newElement.style.fill = colours[idx];
   newElement.style.fillOpacity = "0.5";
   if (c) {
+    //Pie Outer Segment
     newElement.setAttribute("class",c);
     newElement.style.display = "none";
     newElement.addEventListener("click", function(){ pieExtendClick(idx2,event); });
+    newElement.addEventListener("touchstart", function() { segmentDragStart(event); });
+    newElement.addEventListener("touchmove", function() { segmentDragMove(event) });
+    newElement.addEventListener("touchend", function() { segmentDragEnd(event) });
+    newElement.tileIdx = idx2;
+    // newElement.addEventListener("mousedown", segmentDragStart);
+    // newElement.addEventListener("mousemove", segmentDragMove);
+    // newElement.addEventListener("mouseend", segmentDragEnd);
+    
     svg.appendChild(newElement);
     var tileText = tileList[idx2].getAttribute("desc");
     if (!tileText) {
@@ -366,6 +381,92 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2) {
 
 }
 
+function segmentDragStart(event) {
+  console.log("S Drag Start");
+  var menus = codearea.getElementsByClassName('popup-menu');
+  // ???
+  // if (currentFocus) {
+    // currentFocus.blur();
+    // currentFocus = null;
+    // return;
+  // }
+
+  for (var i = 0; i < event.targetTouches.length; i++) {    
+    var id = event.targetTouches[i].identifier;
+    var target = event.target;
+
+    if (!(id in pieMenuTouches)) {
+      //New Touch Event
+      event.preventDefault();
+      var x = event.targetTouches[i].clientX;
+      var y = event.targetTouches[i].clientY;
+
+      segmentTouches[id] = {x:x, y:y, updates:0, ix:window.frameElement.offsetLeft, iy:window.frameElement.offsetTop};
+      segmentTouches[id].sx = event.targetTouches[i].screenX;
+      segmentTouches[id].sy = event.targetTouches[i].screenY;
+      segmentTouches[id].tile = tileList[target.tileIdx];
+      segmentTouches[id].svg = target.parentNode;
+    }
+    console.log("S Drag Start Target:" + target + "," + segmentTouches[id].tile);
+  }
+  event.preventDefault();
+}
+
+function segmentDragMove(event) {
+  console.log("S Drag Move: " + event.target + "," + (event.target == (codearea)));
+  if (!window.frameElement) { return; }
+  for (var i = 0; i < event.changedTouches.length; i++) {
+    var id = event.changedTouches[i].identifier;
+    //Target is always the path element
+    if (/*event.target == codearea &&*/ id in segmentTouches) {
+      //Moves check
+      //?
+
+      //Distance check - create tile after some distance
+      if (!segmentTouches[id].ok) {
+        var x = event.changedTouches[i].clientX;
+        var y = event.changedTouches[i].clientY;
+        var dist = Math.sqrt(Math.pow(x - segmentTouches[i].x, 2) + Math.pow(y - segmentTouches[i].y, 2));
+        if (dist > segMoveThresholdDistance) {
+          //#TODO
+          //Start Dragging Tile
+          console.log("Segment Drag Distance Reached");
+          segmentTouches[id].ok = 1;
+        }
+      }
+      segmentTouches[id].updates++;
+    }
+  }
+  moveCounter++;
+  event.preventDefault();
+  // event.stopPropagation();
+}
+
+function segmentDragEnd(event) {
+  console.log("S Drag End");
+  for (var i = 0; i < event.changedTouches.length; i++) {
+    var id = event.changedTouches[i].identifier;    
+    if (id in segmentTouches) {
+      if (segmentTouches[id].ok) {
+        //target is always svg element
+        // if (event.target == codearea) {
+          // showPieMenu(pieMenuTouches[id].x,pieMenuTouches[id].y);
+          createTile(segmentTouches[id].tile, null, event.changedTouches[id].clientX, event.changedTouches[id].clientY);
+        // }
+      } else {
+          pieExtendClick(segmentTouches[id].tile, segmentTouches[id].svg);
+      }
+    }
+    delete segmentTouches[id];    
+  }
+  event.preventDefault();
+}
+
+
+
+
+
+
 function calcBoundingBox(xList,yList) {
   var xMin = Number.MAX_VALUE;
   var xMax = Number.MIN_VALUE;
@@ -381,15 +482,21 @@ function calcBoundingBox(xList,yList) {
   return [(xMin + (xMax - xMin)*.5),(yMin + (yMax - yMin)*.5)];
 }
 
-function pieExtendClick(tileIdx, pieSeg) {
-  createTile(tileList[tileIdx], pieSeg.target.parentNode);
-  closePieMenu(pieSeg);
+function pieExtendClick(tile, svg) {
+  createTile(tile, svg);
+  closePieMenu(event);
 }
 
-function createTile(tile, svg) {
+function createTile(tile, svg, x, y) {
   //Based on embedded function in main.js
-  var xPoint = svg.xPoint;
-  var yPoint = svg.yPoint;
+  var xPoint, yPoint;
+  if (svg) {
+    xPoint = svg.xPoint;
+    yPoint = svg.yPoint;
+  } else {
+    xPoint = x;
+    yPoint = y;
+  }
 
   var cl = tile.cloneNode(true);
   addTileTouchToTile(cl);
@@ -403,8 +510,7 @@ function createTile(tile, svg) {
   cl.style.top = (codearea.scrollTop + yPoint - tile.offsetWidth * 0.5) + "px";
   cl.style.left = (xPoint - tile.offsetHeight * 0.5) + 'px';
   cl.style.display = "";
-  attachTileBehaviour(cl);
-  xPoint = yPoint = null;
+  attachTileBehaviour(cl);  
 
   // tile.addEventListener("click",
   //   function (event) {
