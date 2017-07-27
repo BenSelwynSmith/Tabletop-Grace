@@ -1,17 +1,20 @@
 Tabletop Grace is a conversion of Tiled Grace for use with interactive touch
 tables and is currently being tested on the Promethean ActivTable.
 
+The current live version can be found at:
+<http://ecs.vuw.ac.nz/~selwynbenj/tabletopgrace>
+Keep in mind that a lot of interface elements won't work with keyboard and mouse.
+
 Tiled Grace can be found at:
 GitHub:
 <https://github.com/mwh/tiledgrace>.
 
 The readme from Tiled Grace follows as much of the information is still
 relevant. One caveat is that Tabletop Grace is recommended to be run in
-Goolge Chrome only and even then the following setting:
+Google Chrome only and even then the following setting:
 chrome://flags/#overscroll-history-navigation
 must be set to disabled.
-This prevents touch actions from causing page swiping, i.e. forward and
-back.
+This prevents touch actions from causing page swiping, i.e. forward and back.
 Another difference is that Tabletop Grace has all its scripts located
 in the script folder, whereas Tiled Grace uses the root directory.
 
