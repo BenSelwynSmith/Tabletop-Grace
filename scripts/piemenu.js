@@ -398,7 +398,6 @@ function createPieMenu(svg) {
       }
     }
   }
-       
   
   var tileGroups = [];
   for (var i = 0; i < tiles.length; i++) {    
@@ -592,6 +591,7 @@ function createExtendSec(svg,idx,txtData,start) {
         d.value = d.options[event.target.idx].value;
         curSample = event.target.idx;
         closeAllMenus();
+        console.log("Loading: " + d.value);
         loadSample(d.value);
         checkpointSave();
       });
@@ -880,10 +880,10 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
     //Pie Outer Segment
     newElement.setAttribute("class",c);
     newElement.style.display = "none";
-    newElement.addEventListener("click", function(){ pieExtendClick(idx2,event); });
-    newElement.addEventListener("touchstart", function() { segmentDragStart(event); });
-    newElement.addEventListener("touchmove", function() { segmentDragMove(event) });
-    newElement.addEventListener("touchend", function() { segmentDragEnd(event) });
+    newElement.addEventListener("click", function(event){ pieExtendClick(idx2,svg,event); });
+    newElement.addEventListener("touchstart", function(event) { segmentDragStart(event); });
+    newElement.addEventListener("touchmove", function(event) { segmentDragMove(event) });
+    newElement.addEventListener("touchend", function(event) { segmentDragEnd(event) });
     newElement.tileIdx = idx2;
     // newElement.addEventListener("mousedown", segmentDragStart);
     // newElement.addEventListener("mousemove", segmentDragMove);
@@ -1149,7 +1149,7 @@ function segmentDragEnd(event) {
           createTile(segmentTouches[id].tile, null, event.changedTouches[id].clientX, event.changedTouches[id].clientY);
         // }
       } else {
-          pieExtendClick(segmentTouches[id].tile, segmentTouches[id].svg);
+          pieExtendClick(segmentTouches[id].tile, segmentTouches[id].tile.parentNode, event.changedCoutches[id]);
       }
     }
     delete segmentTouches[id];
@@ -1177,13 +1177,17 @@ function calcBoundingBox(xList,yList) {
   return [(xMin + (xMax - xMin)*.5),(yMin + (yMax - yMin)*.5)];
 }
 
-function pieExtendClick(tile, svg) {
+function pieExtendClick(tile, svg, event) {
   createTile(tile, svg);
   closePieMenu(event);
 }
 
 function createTile(tile, svg, x, y) {
   //Based on embedded function in main.js
+  console.log("Tile: " + tile);
+  if (tile.nodeType != 1) {
+    tile = tileList[tile];
+  }
   var xPoint, yPoint;
   if (svg) {
     xPoint = svg.xPoint;
