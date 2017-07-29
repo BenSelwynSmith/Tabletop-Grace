@@ -5,6 +5,7 @@ var desaturator = document.getElementById('desaturator');
 var bin = document.getElementById('bin');
 var hideCategoryBar = false;
 var bgMinigrace = new Worker("scripts/background.js");
+var indListener;
 el.style.cssText = 'pointer-events: auto';
 supportsPointerEvents = (el.style.pointerEvents == 'auto');
 Array.prototype.forEach.call(codearea.getElementsByClassName('tile'),
@@ -23,6 +24,67 @@ codearea.addEventListener('click', function(ev) {
     for (var i=0; i<menus.length; i++)
         codearea.removeChild(menus[i]);
 });
+
+function indicatorDisplay(b) {  
+  
+  if (b) {
+    clearPopouts();
+    if (codearea.style.visibility == 'hidden')
+        return;
+    var reasons = [];
+    var tiles = findErroneousTiles(reasons);
+    if (tiles.length > 0) {
+        desaturator.style.width = codearea.scrollWidth + 'px';
+        desaturator.style.height = codearea.scrollHeight + 'px';
+        desaturator.style.display = 'block';
+        setTimeout(function() {codearea.classList.add('desaturate');}, 10);
+        document.getElementById('overlay-canvas').style.display = 'block';
+    }
+    var c = document.getElementById('overlay-canvas');
+    if (!indListener) {
+      desaturator.addEventListener("click",function() { indicatorDisplay(0); });
+      indListener = 1;
+    }
+    var ctx = c.getContext('2d');
+    ctx.font = "9pt sans-serif";
+    for (var i=0; i<tiles.length; i++) {
+        var mn = tiles[i];
+        var xy = findOffsetTopLeft(mn);
+        ctx.save();
+        ctx.translate(0, -codearea.scrollTop);
+        ctx.beginPath();
+        var textwidth = ctx.measureText(reasons[i]);
+        var textleft = xy.left;
+        var texttop = xy.top + mn.offsetHeight + 4;
+        if (textleft + textwidth.width > codearea.offsetWidth)
+            textleft = codearea.offsetWidth - 2 - textwidth.width;
+        ctx.fillStyle = "pink";
+        ctx.fillRect(textleft, texttop + 3, textwidth.width + 1, 14);
+        ctx.fill();
+        ctx.fillStyle = "black";
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "hsl(330, 75%, 65%)";
+        ctx.rect(textleft, texttop + 2, textwidth.width + 2, 16);
+        ctx.stroke();
+        ctx.fillText(reasons[i], textleft + 1, texttop + 14);
+        ctx.restore();
+        tiles[i].classList.add('highlight');
+    }
+    var arrows = arrowOffscreenTiles(tiles);
+    for (var k in arrows)
+        arrows[k].classList.add('error');
+  } else {
+    codearea.classList.remove('desaturate');
+    setTimeout(function() {desaturator.style.display = 'none';}, 250);
+    document.getElementById('overlay-canvas').style.display = 'none';
+    var tiles = codearea.getElementsByClassName('highlight');
+    while (tiles.length > 0) {
+        tiles[0].classList.remove('highlight');
+    }
+    clearPopouts();
+  }
+}
+
 // codearea.addEventListener('scroll', function(ev) {
     // bin.style.top = codearea.scrollTop + 'px';
     // bin.style.right = (-codearea.scrollLeft) + 'px';

@@ -5,9 +5,11 @@
      <link rel="stylesheet" type="text/css" href="style.css">
  </head>
  <body>
-     <svg id='pie_svg' width="300" height="300" style="display:none; position:absolute; z-index:500">
+     <svg id='pie_svg' width="400" height="400" style="display:none; position:absolute; z-index:1000">
      </svg>
-     <svg id='tile_svg' width="300" height="300" style="display:none; position:absolute; z-index:500">
+     <svg id='sec_svg' width="400" height="400" style="display:none; position:absolute; z-index:1000">
+     </svg>
+     <svg id='tile_svg' width="200" height="200" style="display:none; position:absolute; z-index:1000">
      </svg>     
      <script type="text/javascript" src="scripts/piemenu.js"></script>
      <span id="codearea">         
@@ -22,14 +24,14 @@
     
      
      <div id="toolbox" style="display: none;">
-         <div class="tile vardec" data-category="Variables" desc="+VAR"><span style="margin-right: 1ex; color: blue;">var</span><input type="text" value="" size="1" class="variable-name"><span class="assop">:=</span><div class="hole"></div></div>
-         <div class="tile defdec" data-category="Variables" desc="+DEF"><span style="margin-right: 1ex; color: blue;">def</span><input type="text" value="" size="1" class="variable-name"><span class="assop">=</span><div class="hole"></div></div>
-         <div class="tile var" data-category="Variables" desc="VAR"><span class="var-name">Variable</span></div>
-         <div class="tile assign" data-category="Variables" desc="ASSIGN"><div class="hole bind-lhs"></div><span class="assop">:=</span><div class="hole"></div></div>
-         <div class="tile operator" data-category="Numbers and Strings" desc="+" data-types="Number" data-operators="+ * - /"><div class="hole number" data-accepts="Number"></div><div class="op" data-operators="+ * - /">+</div><div class="hole number" data-accepts="Number"></div></div>
-         <div class="tile operator" data-category="Numbers and Strings" desc="++" data-types="String" data-operators="++"><div class="hole" data-accepts="String"></div><div class="op">++</div><div class="hole" data-accepts="String"></div></div>
-         <div class="tile comparison-operator" data-category="Numbers and Strings" desc="==" data-types="Boolean" data-operators="== < >"><div class="hole number"></div><div class="cmpop">==</div><div class="hole number"></div></div>
-         <div class="tile number" data-category="Numbers and Strings" desc="NUM" data-types="Number"><input type="text" value="0" size="3" ></div>
+         <div class="tile vardec" data-category="Variables" desc="Variable"><span style="margin-right: 1ex; color: blue;">var</span><input type="text" value="" size="1" class="variable-name"><span class="assop">:=</span><div class="hole"></div></div>
+         <div class="tile defdec" data-category="Variables" desc="Definiton"><span style="margin-right: 1ex; color: blue;">def</span><input type="text" value="" size="1" class="variable-name"><span class="assop">=</span><div class="hole"></div></div>
+         <div class="tile var" data-category="Variables" desc="Reference"><span class="var-name">Variable</span></div>
+         <div class="tile assign" data-category="Variables" desc="Assign"><div class="hole bind-lhs"></div><span class="assop">:=</span><div class="hole"></div></div>
+         <div class="tile operator" data-category="Numbers and Strings" desc="+ - * / % ^" data-types="Number" data-operators="+ * - /"><div class="hole number" data-accepts="Number"></div><div class="op" data-operators="+ * - /">+</div><div class="hole number" data-accepts="Number"></div></div>
+         <div class="tile operator" data-category="Numbers and Strings" desc="Concat" data-types="String" data-operators="++"><div class="hole" data-accepts="String"></div><div class="op">++</div><div class="hole" data-accepts="String"></div></div>
+         <div class="tile comparison-operator" data-category="Numbers and Strings" desc="== != < > <= >=" data-types="Boolean" data-operators="== < >"><div class="hole number"></div><div class="cmpop">==</div><div class="hole number"></div></div>
+         <div class="tile number" data-category="Numbers and Strings" desc="Number" data-types="Number"><input type="text" value="0" size="3" ></div>
          <div class="tile operator iterable" data-category="Numbers and Strings" desc="ITERABLE" data-types="Iterable" data-operators=".."><div class="hole number"></div><div class="op">..</div><div class="hole number"></div></div>
          <div class="tile string" data-types="String Iterable" data-category="Numbers and Strings" desc="STRING">"<input type="text" value="Hello, world!" size="13" >"</div>
          <div class="tile request" data-category="Control" desc="REQUEST"><div class="hole"></div><span>.</span><input type="text" size="5"><a class="argument-adder">+</a></div>
@@ -39,7 +41,7 @@
          <div class="tile method" data-category="Control" desc="METHOD"><div><span style="margin-right: 1ex; color: blue;">method</span><input type="text" value="" size="5" class="method-name" /><a class="parameter-adder">+</a> <span class="lbrace">{</span></div><div class="indent"><div class="hole multi"></div></div><div>}</div></div>
          <div class="tile selfcall" data-category="Control" desc="SELFCALL"><input type="text" size="5" /><a class="argument-adder">+</a></div>
      </div>     
-     <div>
+     <div style="display: none">
      <div id="category-bar">
          <input type="button" value="Variables" />
          <input type="button" value="Numbers and Strings" />
@@ -58,6 +60,7 @@
      <input type="button" onclick="go()" value="Run" id="runbutton">
      <input type="button" onclick="toggleShrink()" value="Code View" id="viewbutton">
      <div id="indicator" style="display: inline-block; width: 16px; height: 16px; background: green;"></div>     
+     <a href="blob:http://homepages.ecs.vuw.ac.nz/feb0f16a-e3a6-41bb-b045-cff54f08df54" download="myprogram.grace" id="downloadlink">Download</a>
      Load file: <input type="file" id="userfile" onchange="loadFile()" />
      <input type="button" value="Load sample" onclick="loadSample(document.getElementById('samples').value)" />     
      <select id="samples">
@@ -69,6 +72,7 @@
          <option value="orbital">Orbital simulator</option>
      </select>
      <input type="button" value="Reset" onclick="reset_page()"/>
+     <input type="button" value="Clear Output" onclick="clearOutput()"/>
      <br />
      <div id="acknowledgements"><a href="https://github.com/mwh/minigrace">Minigrace</a> is distributed under the GNU GPL version 3. <a href="http://www.entypo.com/">Entypo</a> pictograms by Daniel Bruce.</div>
      </div>
@@ -99,6 +103,7 @@
     
      <script>
       enableTouch();
+      console.log("done");
      </script>
     
  </body>

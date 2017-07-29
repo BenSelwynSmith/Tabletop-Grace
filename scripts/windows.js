@@ -8,6 +8,7 @@ var alt = 0;
 var depth = 5;
 var scaled = 0;
 var expanded = 0;
+var moved = 0;
 
 /* function createWindow() {
   var iframe = document.createElement('iframe');
@@ -24,6 +25,42 @@ function runTest() {
   addOutputWindow();
 }
 
+function removeWindows() {
+  for (var i = 0; i < windows.length; i++) {
+    windows[i].parentNode.removeChild(windows[i]);
+  }
+  windows = [];
+  windowCount = 0;
+}
+
+function testSetup(i,reset) {
+  if (reset == 1) {
+    removeWindows();
+  }
+  if (windowCount == 0) {
+    if (i == 2) {
+      addBlockWindow(null,0);
+      addBlockWindow(null,0);
+      windows[0].style.left = "0%";
+      windows[0].style.top = "0%";
+      windows[0].style.width = "50%";
+      windows[0].style.height = "100%";
+      windows[1].style.left = "50%";
+      windows[1].style.top = "0%";
+      windows[1].style.width = "50%";
+      windows[1].style.height = "100%";
+    } else if (i == 1) {
+      addBlockWindow(null,0);
+      windows[0].style.left = "0%";
+      windows[0].style.top = "0%";
+      windows[0].style.width = "100%";
+      windows[0].style.height = "100%";
+    }
+  }
+}
+
+
+
 function testScaleWindow(s) {
   scaleWindow(s,windows[0]);
 }
@@ -31,6 +68,14 @@ function testScaleWindow(s) {
 function propComparator(prop) {
     return function(a, b) {
         return a[prop] - b[prop];
+    }
+}
+
+function propComparator2(prop) {
+    return function(a,b) {
+        if (a[prop] < b[prop]) { return -1; }
+        if (a[prop] > b[prop]) { return 1; }
+        return 0;
     }
 }
 
@@ -59,6 +104,12 @@ function bringToFront(t) {
   }
 }
 
+function checkExpandOutput() {
+  if (expanded == 0) {
+    expandOutput();
+  }
+}
+
 function expandOutput() {  
   var c = document.getElementById("codearea");
   var o = document.getElementById("outputarea");
@@ -66,14 +117,28 @@ function expandOutput() {
   if (expanded == 0) {
     c.style.width = "70%";
     o.style.width = "30%";
-    b.value = ">";
+    b.innerHTML = ">";
     expanded = 1;
   } else {
     c.style.width = "99%";
     o.style.width = "1%";
-    b.value = "<";
+    b.innerHTML = "<";
     expanded = 0;
   }
+}
+
+function clearCode() {
+  tiles = [];
+  var children = codearea.children;
+  console.log(children.length);
+  for (var i = 0; i < codearea.children.length; i++) {
+    if (children[i].id != "desaturator") {
+      // console.log("Removed: " + codearea.removeChild(children[i]));
+      i--;
+    }
+  }
+  // console.log(children.length);
+  generateCode();
 }
 
 function clearOutput() {
@@ -84,7 +149,24 @@ function clearOutput() {
   context.clearRect(0, 0, c.width, c.height);
 }
 
+
+function moveWindow(x,y) {
+  var f = window.frameElement;
+  var l,t;
+  if (!moved) {      
+    l = f.offsetLeft;
+    t = f.offsetTop;
+    moved = 1;
+  } else {    
+    l = parseFloat(f.style.left);
+    t = parseFloat(f.style.top);    
+  }
+  f.style.left = l + x + "px";
+  f.style.top = t + y + "px";
+}
+
 function scaleWindow(s,t) {
+  console.log("Scale: " + s);
   var f = window.frameElement || t;
   // console.log("Window: " + f);
   if (f) {
@@ -100,7 +182,7 @@ function scaleWindow(s,t) {
       h = parseFloat(f.style.height);
       l = parseFloat(f.style.left);
       t = parseFloat(f.style.top);
-      console.log("Scale: " + w + "," + h + "," + l + "," + t);
+      // console.log("Scale: " + w + "," + h + "," + l + "," + t);
     }
 
     f.style.width = w + s + "px";

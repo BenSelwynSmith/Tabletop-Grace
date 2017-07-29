@@ -1,4 +1,6 @@
 "use strict"
+var errorTiles;
+
 function findOffsetTopLeft(el) {
     var x = el.offsetLeft;
     var y = el.offsetTop;
@@ -175,7 +177,7 @@ function dragstart(ev) {
         top += codearea.scrollTop;
         left += codearea.scrollLeft;
         d.removeEventListener('mousemove', dragcontinue);
-        d.removeEventListener('mouseup', dragend);        
+        d.removeEventListener('mouseup', dragend);
         obj.classList.remove('selected');
         if (isOverBin(ev)) {
             var tmp = obj;
@@ -297,7 +299,7 @@ function dragstart(ev) {
         checkpointSave();
     }
     d.addEventListener('mousemove', dragcontinue);
-    d.addEventListener('mouseup', dragend);    
+    d.addEventListener('mouseup', dragend);
     this.classList.add('selected');
     var tmp = this;
     while (typeof tmp.next != "undefined" && tmp.next) {
@@ -363,17 +365,27 @@ function updateTileIndicator() {
         }
     }
     var reasons = [];
-    var errorTiles = findErroneousTiles(reasons);
-    if (errorTiles.length > 0)
+    errorTiles = findErroneousTiles(reasons);
+    if (errorTiles.length > 0) {
         document.getElementById('indicator').style.background = 'red';
-    else
+        var err2 = document.getElementsByClassName("errorPie");
+        for (var i = 0; i < err2.length; i++) {
+          err2[i].style.fill = "red";
+        }
+    } else {
         document.getElementById('indicator').style.background = 'green';
+        var err2 = document.getElementsByClassName("errorPie");
+        for (var i = 0; i < err2.length; i++) {
+          err2[i].style.fill = "green";
+        }
+    }
     if (markErrorsAlways) {
         for (var i=0; i<errorTiles.length; i++) {
             errorTiles[i].classList.add('has-error');
             errorTiles[i].title = reasons[i];
         }
     }
+    return errorTiles.length;
 }
 function renameVar(oldValue, newValue, relativeTo) {
     if (!relativeTo)

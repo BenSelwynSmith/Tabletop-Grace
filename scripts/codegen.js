@@ -330,8 +330,16 @@ function generateCode() {
         tb.value = tb.value + "\n";
     }
     var blob = new Blob([tb.value + chunkLine], {type: "text/x-grace;charset=utf-8"});
-    // if (document.getElementById('downloadlink').href)
-        // URL.revokeObjectURL(document.getElementById('downloadlink').href);
+    if (document.getElementById('downloadlink').href)
+        URL.revokeObjectURL(document.getElementById('downloadlink').href);
+    var href = URL.createObjectURL(blob);
     // document.getElementById('downloadlink').href = URL.createObjectURL(blob);
+    document.getElementById('downloadlink').href = href;
+    
+    var dl2 = document.getElementsByClassName("downloadlink2");    
+    for (var i = 0; i < dl2.length; i++) {
+       dl2[i].setAttributeNS("http://www.w3.org/1999/xlink", "href",href);       
+    }
+    // document.getElementById("downloadlink2").setAttribute("href",document.getElementById('downloadlink').href);
 }
 

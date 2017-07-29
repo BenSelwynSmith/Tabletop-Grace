@@ -1,3 +1,5 @@
+*.jpg
+*.png
 *.js
 !ace/mode-grace.js
 !scripts/codegen.js

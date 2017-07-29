@@ -27,6 +27,8 @@ var t1v;
 var t2v;
 var lastAngle;
 var lastRot;
+var lastX;
+var lastY;
 
 var tileZIndex = 5;
 var tileLastZIndex = tileZIndex;
@@ -441,21 +443,36 @@ function pieTouchMove(event) {
 
         console.log("SR Angle: " + a1 + "," + a2);
 
-        //Obviously this is not quite right, but it works...
+        var magicNumber = 57;
+        //Magic number 57
         //Around 57, -57 = <-- -->
         //      -57,  57 = --> <--
         var variance = 15;
         var scale = 30;
-        var scaled = 0;
+        var scaled = 1;
         if (!isNaN(a1) && !isNaN(a2)) {
-          console.log("SR Angle: " +(a1 < 57 + variance && a1 > 57 - variance && a2 > -57 - variance && a2 < -57 + variance) + 
-            "," + (a2 < 57 + variance && a2 > 57 - variance && a1 > -57 - variance && a1 < -57 + variance));
-          if (a1 < 57 + variance && a1 > 57 - variance && a2 > -57 - variance && a2 < -57 + variance) {
-            scaleWindow(scale);
-            scaled = 1;
-          } else if (a2 < 57 + variance && a2 > 57 - variance && a1 > -57 - variance && a1 < -57 + variance) {
-            scaleWindow(-scale);
-            scaled = 1;
+          if (a2 - a1 < variance) {
+            //Drag
+
+            var x = touch1.screenX;
+            var y = touch1.screenY;      
+            var iframe = window.frameElement;
+            var dx,dy,l2,t2;
+            if (lastX != null) {
+              dx = x - lastX;
+              dy = y - lastY;
+              moveWindow(dx,dy);              
+              console.log("Dragging: " + dx + "," + dy);
+            }
+            lastX = x;
+            lastY = y;
+          } else if (a1 < magicNumber + variance && a1 > magicNumber - variance && a2 > -magicNumber - variance && a2 < -magicNumber + variance) {
+            //Increase scale #TODO adjust scale by touch movement
+            // scaleWindow(scale);            
+          } else if (a2 < magicNumber + variance && a2 > magicNumber - variance && a1 > -magicNumber - variance && a1 < -magicNumber + variance) {
+            // scaleWindow(-scale);            
+          } else {
+            scaled = 0;
           }
 
 
@@ -490,9 +507,9 @@ function pieTouchMove(event) {
 
                 
                 if (da > 0.5) {
-                  rotateWindow(rot);
+                  // rotateWindow(rot);
                 } else if (da < -0.5) {
-                  rotateWindow(rot);
+                  // rotateWindow(rot);
                 }            
                 
               }
@@ -675,63 +692,13 @@ function pieTouchEnd(event) {
       
       delete windowTouches[id];
     }
-    if (id == codearea.t1) { codearea.t1 = null; t1v = null; lastAngle = null;}
-    if (id == codearea.t2) { codearea.t2 = null; t2v = null; lastAngle = null;}  
+    if (id == codearea.t1) { codearea.t1 = null; t1v = null; lastAngle = null; lastX = lastY = null;}
+    if (id == codearea.t2) { codearea.t2 = null; t2v = null; lastAngle = null; lastX = lastY = null;}  
     console.log("End Touch2: " + id + "," + codearea.t1 + "," + codearea.t2 + "," + (codearea.t1 == id) + "," + (codearea.t2 == id)); 
   }
   event.preventDefault();
 }
 
-function scaleRotate(t1,t2,t1w,t2w) {
-  //Scaling
-  //This involves two touch events moving away from each, but to differentiate between
-  //this and rotation, a further check ensures both line are roughly alligned.
-  //e.g.  <-- --> is ok
-  //
-  //     <--
-  //        -->   is not
-  
-  
-  //SQRT ax^2 + ay^2
-
-  // var vx2 = t2w.x - t1w.x;
-  // var vy2 = t2w.y - t1w.y;
-  if (!t2) { return 0; }
-
-
-
-
-  var v1x = t1.clientX - t1w.x;
-  var v1y = t1.clientY - t1w.y;
-  var v2x = t2.clientX - t2w.x;
-  var v2y = t2.clientY - t2w.y;  
-
-  var v1m = Math.sqrt(Math.pow(v1x,2) + Math.pow(v1y,2));
-  var v2m = Math.sqrt(Math.pow(v2x,2) + Math.pow(v2y,2));
-  
-
-
-  var vx = t2.clientX - t1.clientX;
-  var vy = t2.clientY - t1.clientY;
-  var vm = Math.sqrt(Math.pow(vx,2) + Math.pow(vy,2));
-
-  var dot1 = v1x * vx + v1y * vy;
-  var dot2 = v2x * vx + v2y * vy;
-
-
-  var a1 = dot1 / v1m * vm;
-  var a2 = dot2 / v2m * vm;
-  console.log("ScaleRotate: " + t1.clientX + "," + t1.clientY + " - " + t1w.x + "," + t1w.y + ", 2: " + t2.clientX + "," + t2.clientY + " - " + t2w.x + "," + t2w.y);
-  console.log("ScaleRotate: " + v1x + "," + v1y + " - " + v2x + "," + v2y + " - M: " + v1m + "," + v2m + ", D: " + dot1 + "," + dot2);
-  console.log("ScaleRotate: " + (a1*toDeg) + "," + (a2*toDeg));
-  
-  // console.log("ScaleRotate: " + vx + "," + vy + "," + vx2 + "," + vy2 + " - " + dot);
-  // console.log("ScaleRotate dot: " + dot);
-
-
-  //Rotation
-  //This involves two touch events moving away from each e.g. <-- -->
-}
 
 function pieTouchToggle(event) {
   console.log("PieTouch: " + event.changedTouches.length);
@@ -802,9 +769,10 @@ function tileTouchStart(event) {
 
     while (target != null) {
       if (!target.classList.contains('tile')) {
-        target = target.parentNode;
+        target = target.parentNode;        
       } else { break; }
     }
+    parent = target.parentNode;
     
     tileBringToFront(target);
 

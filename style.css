@@ -75,7 +75,7 @@ html, body {
     width: 100%;
     /* height: 90vh; /* Work around Chrome bug 168840*/
     /* height: calc(99vh - 40px); */
-    height: 95%;
+    height: 100%;
 }
 #desaturator {
     position: absolute;
@@ -99,7 +99,7 @@ html, body {
     width: 99%;
     /*height: 90vh;  Work around Chrome bug 168840*/
     /*height: calc(99vh - 40px);*/
-    height: 95%;
+    height: 100%;
     background: #ddd;
     position: relative;
     float: left;
