@@ -19,6 +19,7 @@ var curSample = 0;
 var pieM = 200;
 var maxPie = 355;
 var maxSec = 355;
+var currentView = 0;
 
 var tileList = [];
 
@@ -94,6 +95,7 @@ function createTileMenu(svg) {
   newElement.style.fillOpacity = "0.5";
   svg.appendChild(newElement);
   newElement.addEventListener("click", closeTileMenu);
+  newElement.style.pointerEvents = "all";
 
   /* Line \  */
   newElement = document.createElementNS("http://www.w3.org/2000/svg", 'line'); //Create a path in SVG's namespace
@@ -106,6 +108,7 @@ function createTileMenu(svg) {
   newElement.style.strokeOpacity = .5;
   svg.appendChild(newElement);
   newElement.addEventListener("click", closeTileMenu);
+  newElement.style.pointerEvents = "all";
 
   // Line /
   newElement = document.createElementNS("http://www.w3.org/2000/svg", 'line'); //Create a path in SVG's namespace
@@ -118,6 +121,7 @@ function createTileMenu(svg) {
   newElement.style.strokeOpacity = .5;
   svg.appendChild(newElement);
   newElement.addEventListener("click", closeTileMenu);
+  newElement.style.pointerEvents = "all";
 
   //Delete
   newElement = document.createElementNS("http://www.w3.org/2000/svg", 'circle'); //Create a path in SVG's namespace
@@ -127,19 +131,19 @@ function createTileMenu(svg) {
   newElement.setAttribute("cy", y1);
   newElement.setAttribute("r", r);
   newElement.style.fill = "white";
-  // newElement.style.fillOpacity = "1";
-  // newElement.addEventListener("click", function(event){ deleteNode(); });
-  // newElement.addEventListener("touchend", function(event) { deleteNode(); });
-  // addButtonTouch(newElement, deleteTile, svg.tileSrc);
+  
   newElement.addEventListener("click", function(event) { deleteTile(event,svg.tileSrc); });
   svg.appendChild(newElement);
+  newElement.style.pointerEvents = "all";
 
   var textElement = document.createElementNS("http://www.w3.org/2000/svg", 'text'); //Create a path in SVG's namespace
   textElement.textContent = "\uE729";
   textElement.style.fontFamily = "entypo";
   textElement.style.fontSize = "50px";
   textElement.setAttribute("x",xMid);
-  textElement.setAttribute("y",y1+txtMod);
+  textElement.setAttribute("y",y1);
+  //Firefox
+  // textElement.setAttribute("y",y1+txtMod);
   textElement.setAttribute("text-anchor", "middle");
   textElement.setAttribute("alignment-baseline", "middle");
   textElement.setAttribute("pointer-events", "none");
@@ -152,12 +156,10 @@ function createTileMenu(svg) {
   newElement.setAttribute("cx", xMid);
   newElement.setAttribute("cy", y2);
   newElement.setAttribute("r", r);
-  newElement.style.fill = "white";
-  // newElement.addEventListener("click", function(event){ cloneTile() });
-  // newElement.addEventListener("touchend", function(event) { cloneTile(); });
-  // addButtonTouch(newElement, cloneTile, svg.tileSrc);
+  newElement.style.fill = "white";  
   newElement.addEventListener("click", function(event) { cloneTile(event,svg.tileSrc); });
   svg.appendChild(newElement);
+  newElement.style.pointerEvents = "all";
 
   textElement = document.createElementNS("http://www.w3.org/2000/svg", 'text'); //Create a path in SVG's namespace
   textElement.style.fontFamily = "entypo";
@@ -168,7 +170,9 @@ function createTileMenu(svg) {
   //Special values to match this unicode char which has a border around it already
   textElement.style.fontSize = "80px";
   textElement.setAttribute("x",xMid);
-  textElement.setAttribute("y",y2+20);
+  textElement.setAttribute("y",y2);
+  //Firefox
+  // textElement.setAttribute("y",y2+20);
   textElement.setAttribute("text-anchor", "middle");
   textElement.setAttribute("alignment-baseline", "middle");
   textElement.setAttribute("pointer-events", "none");
@@ -232,13 +236,16 @@ function createTileMenuElement(svg,txt,x,y,r,t,tileToChange) {
     generateCode();
   });
   svg.appendChild(newElement);
+  newElement.style.pointerEvents = "all";
 
   var textElement = document.createElementNS("http://www.w3.org/2000/svg", 'text'); //Create a path in SVG's namespace
   textElement.textContent = txt;
   // textElement.style.fontFamily = "entypo";
   textElement.style.fontSize = "20px";
   textElement.setAttribute("x",x);
-  textElement.setAttribute("y",y+t);
+  textElement.setAttribute("y",y);
+  //Firefox
+  // textElement.setAttribute("y",y+t);
   textElement.setAttribute("text-anchor", "middle");
   textElement.setAttribute("alignment-baseline", "middle");
   textElement.setAttribute("pointer-events", "none");
@@ -387,9 +394,9 @@ function createPieMenu(svg) {
         cats.push(cat);
       }
     }
-  }  
+  }    
   
-  tiles = [];
+  var tiles = [];
   for (var c in cats) {       
     for (var i in tmp) {
       if (tmp[i].nodeType != 1) { continue; }
@@ -399,11 +406,19 @@ function createPieMenu(svg) {
     }
   }
   
+  var redo = false;
+  if (!tileList || tileList.length == 0) {
+    redo = true;
+  }
+  
   var tileGroups = [];
   for (var i = 0; i < tiles.length; i++) {    
     var tileType = tiles[i].getAttribute("data-category");    
     
-    tileList.push(tiles[i]);    
+    if (redo) {
+      tileList.push(tiles[i]);    
+    }
+    
     var b = -1;
     for (var j = 0; j < tileGroups.length; j++) {
       if (tileGroups[j].type == tileType) {
@@ -434,8 +449,6 @@ function createPieMenu(svg) {
   } else {
     pie2 = nextChar(pie2);
   }
-  
-  
 
   createPie(svg, tileGroups);
 }
@@ -478,6 +491,7 @@ function createExtendMenus(tileGroup,idx,svg) {
     s += seg;
   }
 }
+
 
 function createExtendSec(svg,idx,txtData,start) {
   var x0 = 200;
@@ -524,6 +538,7 @@ function createExtendSec(svg,idx,txtData,start) {
     newElement.style.strokeWidth = "2px";
     newElement.style.fill = "black";
     newElement.style.fillOpacity = "0.5";
+    newElement.style.pointerEvents = "all";
 
     svg.appendChild(newElement);
 
@@ -574,6 +589,7 @@ function createExtendSec(svg,idx,txtData,start) {
         d.value = d.options[event.target.idx].value;
         curDialect = event.target.idx;
         changeDialect();
+        tileList = [];
         closeAllMenus();
       });
       newElement.setAttribute("class","sec" + idx);
@@ -593,6 +609,7 @@ function createExtendSec(svg,idx,txtData,start) {
         closeAllMenus();
         console.log("Loading: " + d.value);
         loadSample(d.value);
+        // addTileTouch();
         checkpointSave();
       });
       newElement.setAttribute("class","sec" + idx);
@@ -609,19 +626,15 @@ function createExtendSec(svg,idx,txtData,start) {
   }
 }
 
-function rotatePoint(cx, cy, a, px, py) {
-  // console.log("RP: " + cx + "," + cy + "," + a + "," + px + "," + py);
+function rotatePoint(cx, cy, a, px, py) {  
   var s = Math.sin(a);
-  var c = Math.cos(a);
-  // console.log("S:" + s + ", C: " + c);
+  var c = Math.cos(a);  
   px -= cx;
   py -= cy;
   var xn = px * c - py * s;
-  var yn = px * s + py * c;
-  // console.log("xn: " + xn + ", yn: " + yn);
+  var yn = px * s + py * c;  
   px = xn + cx;
-  py = yn + cy;
-  // console.log("px: " + px + ", py: " + py);
+  py = yn + cy;  
   return [px,py];
 }
 
@@ -632,23 +645,23 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
   }
   a1 = a1 % 360;
   
-  p1x = rx;
-  p1y = ry-rad2;
-  p2x = rx;
-  p2y = ry-rad1;
-  dx = 0 - rx;
-  dy = 0 - ry;
+  var p1x = rx;
+  var p1y = ry-rad2;
+  var p2x = rx;
+  var p2y = ry-rad1;
+  var dx = 0 - rx;
+  var dy = 0 - ry;
   var i;
-  p1x1 = p1x+dx;
-  p1y1 = p1y+dy;
-  p2x1 = p2x+dx;
-  p2y1 = p2y+dy;
+  var p1x1 = p1x+dx;
+  var p1y1 = p1y+dy;
+  var p2x1 = p2x+dx;
+  var p2y1 = p2y+dy;
 
-  a1r = a1 * rad;
-  a2r = (a1+a2) * rad;
+  var a1r = a1 * rad;
+  var a2r = (a1+a2) * rad;
 
   if (idx == 0) {
-    console.log("ext: " + a1 + "," + a2 + "," + (a1+a2*.5));
+    // console.log("ext: " + a1 + "," + a2 + "," + (a1+a2*.5));
   }
 
   p1xR = Math.round(((p1x1) * Math.cos(a1r) - (p1y1) * Math.sin(a1r)) - dx);
@@ -668,7 +681,7 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
 
   newElement = document.createElementNS("http://www.w3.org/2000/svg", 'path'); //Create a path in SVG's namespace
   newElement.setAttribute("d",data); //Set path's data
-  if (c == 2) {
+  if (c == 2 || c == -3) {
     newElement.style.stroke = "white";
     newElement.style.strokeWidth = "4px";
     // if (idx % 2) {
@@ -682,8 +695,8 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
     newElement.style.fill = colours[idx];
   }
   newElement.style.fillOpacity = "0.5";
-
-
+  newElement.style.pointerEvents = "all";
+  
 
 
 
@@ -703,58 +716,62 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
       data += "A " + rad1 + " " + rad1 + " " + a2 + " 0 1 " + p3xR + " " + p3yR;
     }
 
-
     var pathName = "path";
     if (c == 2) {
-      pathName += sec1 + sec2 + idx;
+      pathName += "p" + sec1 + sec2 + idx;
     } else if (c == -2) {
-      pathName += pie1 + pie2 + idx;
+      pathName += "s" + pie1 + pie2 + idx;
+    // } else if (c == -3) {
+      // pathName += "w" + win1 + win2 + idx;
     } else {
       pathName += pie1 + pie2 + idx + pieE1 + pieE2 + idx2;
     }
     
-    var mypath2 = document.createElementNS("http://www.w3.org/2000/svg","path");
-    mypath2.setAttributeNS(null, "id", pathName);
-    mypath2.setAttributeNS(null, "d", data);
-    mypath2.setAttributeNS(null,"fill", "none");
-    mypath2.setAttributeNS(null,"stroke","none");
-    svg.appendChild(mypath2);
+    if (c != -3) {
+      var mypath2 = document.createElementNS("http://www.w3.org/2000/svg","path");
+      mypath2.setAttributeNS(null, "id", pathName);
+      mypath2.setAttributeNS(null, "d", data);
+      mypath2.setAttributeNS(null,"fill", "none");
+      mypath2.setAttributeNS(null,"stroke","none");
+      svg.appendChild(mypath2);
 
-    var text1 = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    text1.setAttributeNS(null, "fill", "black");
-    text1.setAttributeNS(null,"font-size","15px");
-    if (other) {
-      text1.setAttributeNS(null, "dominant-baseline", "hanging");
-    } else {
-      text1.setAttributeNS(null, "dominant-baseline", "ideographic");
-    }
-    
-
-    var textpath = document.createElementNS("http://www.w3.org/2000/svg","textPath");
-    textpath.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", "#" + pathName);
-    textpath.setAttribute("startOffset","50%");
-    textpath.setAttribute("text-anchor","middle");
-    
-    //Text
-    var txtElem;
-    if (c == 2 || c == -2) {
-      txtElem = document.createTextNode(idx2);
-    } else {
-      text1.setAttribute("class",c);
-      text1.style.display = "none";
-      var tileText = tileList[idx2].getAttribute("desc");
-      if (!tileText) {
-        tileText = (tileList[idx2].getElementsByTagName('span')[0]).innerText || "?";      
+      var text1 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      text1.setAttributeNS(null, "fill", "black");
+      text1.setAttributeNS(null,"font-size","15px");
+      if (other) {
+        text1.setAttributeNS(null, "dominant-baseline", "hanging");
+      } else {
+        text1.setAttributeNS(null, "dominant-baseline", "ideographic");
       }
-      // tileText = tileText.replace(/\W/g, '');
-      tileText = tileText.replace(/[(){}:=]/gi, '')
-      tileText = tileText.toUpperCase();
-      txtElem = document.createTextNode(tileText);
       
-    }
+
+      var textpath = document.createElementNS("http://www.w3.org/2000/svg","textPath");
+      textpath.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", "#" + pathName);
+      textpath.setAttribute("startOffset","50%");
+      textpath.setAttribute("text-anchor","middle");
+      
+      //Text
+      var txtElem;
+      if (c == 2 || c == -2 || c == -3) {
+        txtElem = document.createTextNode(idx2);
+      } else {
+        text1.setAttribute("class",c);
+        text1.style.display = "none";
+        var tileText = tileList[idx2].getAttribute("desc");
+        if (!tileText) {
+          tileText = (tileList[idx2].getElementsByTagName('span')[0]).innerText || "?";      
+        }
+        // tileText = tileText.replace(/\W/g, '');
+        tileText = tileText.replace(/[(){}:=]/gi, '')
+        tileText = tileText.toUpperCase();
+        txtElem = document.createTextNode(tileText);
+        
+      }
     
-    textpath.appendChild(txtElem);
-    text1.appendChild(textpath);
+      textpath.appendChild(txtElem);
+      text1.appendChild(textpath);
+    }
+  
     
     //SecMenu Main Button operations
     if (c == 2) {
@@ -804,6 +821,11 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
           expandSecMenu(svg,idx);
           if (!(document.getElementById("viewbutton").disabled)) {
               toggleShrink();
+              if (currentView == 0) {
+                currentView = 1;
+              } else {
+                currentView = 0;
+              }
               closeSecondaryMenu(svg)
           }
         });
@@ -847,9 +869,17 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
       }
     }
 
-    svg.appendChild(text1);
+    
+    if (c != -3) {
+      svg.appendChild(text1);
+    }
+    
+    if (c == -3) {   
+      // newElement.addEventListener("click", function() { windowMenuClick(idx,c2); });
+    newElement.addEventListener("touchend", function() { windowMenuClick(idx,c2); });
+    }
 
-    if (c == 2) {
+    if (c == 2 || c == -3) {
       //SecMenu Icons
       //Find center point of segment
       var x1 = p4xR + (p3xR - p4xR) *.5;
@@ -858,64 +888,46 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
       // console.log("a1: " + a1 + ", a2: " + a2);
 
       var textElement = document.createElementNS("http://www.w3.org/2000/svg", 'text'); //Create a path in SVG's namespace
-      textElement.textContent = c2;
+      if (c == -3) {
+        textElement.textContent = idx2;
+      } else {
+        textElement.textContent = c2;
+      }
       textElement.setAttribute("x",xy[0]);
       textElement.setAttribute("y",xy[1]);
       textElement.setAttribute("text-anchor", "middle");
       textElement.setAttribute("dominant-baseline", "middle");
-      textElement.setAttribute("pointer-events", "none");
-      // textElement.setAttribute("font-family", "entypo");
+      textElement.setAttribute("pointer-events", "none");      
       textElement.style.fontFamily = "entypo";
-      textElement.style.fontSize = "40px";
-      if (idx == 1) {
+      if (c == -3) {
+        textElement.style.fontSize = "30px";
+      } else {
+        textElement.style.fontSize = "40px";
+      }
+      if (idx == 1 && c != -3) {
         textElement.style.fontSize = "30px";
       }
 
       svg.appendChild(textElement);
-      return;
+      if (c == 2) {
+        return;
+      }
     }
   }
 
-  if (c && c != 2 && c != -2) {
+  if (c && c != 2 && c != -2 && c != -3) {
     //Pie Outer Segment
     newElement.setAttribute("class",c);
-    newElement.style.display = "none";
-    newElement.addEventListener("click", function(event){ pieExtendClick(idx2,svg,event); });
+    newElement.style.display = "none";    
     newElement.addEventListener("touchstart", function(event) { segmentDragStart(event); });
     newElement.addEventListener("touchmove", function(event) { segmentDragMove(event) });
     newElement.addEventListener("touchend", function(event) { segmentDragEnd(event) });
-    newElement.tileIdx = idx2;
-    // newElement.addEventListener("mousedown", segmentDragStart);
-    // newElement.addEventListener("mousemove", segmentDragMove);
-    // newElement.addEventListener("mouseend", segmentDragEnd);
-
-    svg.appendChild(newElement);
-    // var tileText = tileList[idx2].getAttribute("desc");
-    // if (!tileText) {
-      // tileText = (tileList[idx2].getElementsByTagName('span')[0]).innerText || "?";
-      // tileText = tileText.replace(/[:=)]*/, "");
-      // if (tileText == "") { tileText = "?"; }
-    // }
-    // var xList = [p1xR,p2xR,p3xR,p4xR];
-    // var yList = [p1yR,p2yR,p3yR,p4yR];
-    // var bbox = calcBoundingBox(xList,yList);
-    // var textElement = document.createElementNS("http://www.w3.org/2000/svg", 'text'); //Create a path in SVG's namespace
-
-    // textElement.textContent = tileText;
-    // textElement.setAttribute("x",bbox[0]);
-    // textElement.setAttribute("y",bbox[1]);
-    // textElement.setAttribute("text-anchor", "middle");
-    // textElement.setAttribute("alignment-baseline", "middle");
-    // textElement.style.display = "none";
-    // textElement.setAttribute("pointer-events", "none");
-    // textElement.setAttribute("class",c);
-    // svg.appendChild(textElement);
-  } else {
-    // if (idx == 0) { newElement.className += " tile vardec"; }
+    newElement.tileIdx = idx2;     
+  } else if (c != -3) {    
     newElement.setAttribute("idx", idx);
-    newElement.addEventListener("click", function(){ menuExtend(this.getAttribute("idx"),this); });
-    svg.appendChild(newElement);
+    newElement.addEventListener("click", function(){ menuExtend(this.getAttribute("idx"),this); });    
   }
+  svg.appendChild(newElement);   
 }
 
 function expandSecMenu(svg, idx) {
@@ -960,7 +972,7 @@ function expandSecMenu(svg, idx) {
 
 
 function closeSecMenu(svg) {
-   var timeDif = Date.now() - svg.getAttribute("ts");
+  var timeDif = Date.now() - svg.getAttribute("ts");
   if (timeDif > closePieDelay) {
     window.setTimeout(function() { svg.parentNode.removeChild(svg); },10);
   }
@@ -1127,6 +1139,7 @@ function segmentDragMove(event) {
           //Start Dragging Tile
           console.log("Segment Drag Distance Reached");
           segmentTouches[id].ok = 1;
+          // createTile(segmentTouches[id].tile, null, event.changedTouches[id].clientX, event.changedTouches[id].clientY);
         }
       }
       segmentTouches[id].updates++;
@@ -1141,15 +1154,20 @@ function segmentDragEnd(event) {
   console.log("S Drag End");
   for (var i = 0; i < event.changedTouches.length; i++) {
     var id = event.changedTouches[i].identifier;
+    console.log("S Drag End: " + id + ", " + segmentTouches[id] + ", " + segmentTouches[id].tile);
     if (id in segmentTouches) {
       if (segmentTouches[id].ok) {
         //target is always svg element
         // if (event.target == codearea) {
           // showPieMenu(pieMenuTouches[id].x,pieMenuTouches[id].y);
           createTile(segmentTouches[id].tile, null, event.changedTouches[id].clientX, event.changedTouches[id].clientY);
-        // }
+        // }        
       } else {
-          pieExtendClick(segmentTouches[id].tile, segmentTouches[id].tile.parentNode, event.changedCoutches[id]);
+          var svg = event.changedTouches[id].target;
+          while (svg.tagName != "svg") {
+            svg = svg.parentNode;
+          }
+          pieExtendClick(segmentTouches[id].tile, svg, event.changedTouches[id]);
       }
     }
     delete segmentTouches[id];
@@ -1184,15 +1202,17 @@ function pieExtendClick(tile, svg, event) {
 
 function createTile(tile, svg, x, y) {
   //Based on embedded function in main.js
-  console.log("Tile: " + tile);
+  // console.log("Tile: " + tile + ", " + svg + ", " + svg.xPoint + ", " + svg.yPoint);
   if (tile.nodeType != 1) {
     tile = tileList[tile];
   }
   var xPoint, yPoint;
   if (svg) {
+    console.log("Tile: " + svg.xPoint + ", " + svg.yPoint);
     xPoint = svg.xPoint;
     yPoint = svg.yPoint;
   } else {
+    console.log("Tile: " + x + ", " + y);
     xPoint = x;
     yPoint = y;
   }
@@ -1241,6 +1261,7 @@ function createCancelButton(svg,x,y) {
   newElement.style.fillOpacity = "0.9";
   svg.appendChild(newElement);
   newElement.addEventListener("click", function(event){ closePieMenu(event); });
+  newElement.style.pointerEvents = "all";
   // newElement.addEventListener("touchend", function(){ closePieMenu(event); });
 
   newElement = document.createElementNS("http://www.w3.org/2000/svg", 'line'); //Create a path in SVG's namespace
@@ -1253,6 +1274,7 @@ function createCancelButton(svg,x,y) {
   newElement.style.strokeOpacity = .5;
   svg.appendChild(newElement);
   newElement.addEventListener("click", function(event){ closePieMenu(event); });
+  newElement.style.pointerEvents = "all";
   // newElement.addEventListener("touchend", function(){ closePieMenu(event); });
 
   newElement = document.createElementNS("http://www.w3.org/2000/svg", 'line'); //Create a path in SVG's namespace
@@ -1265,6 +1287,7 @@ function createCancelButton(svg,x,y) {
   newElement.style.strokeOpacity = .5;
   svg.appendChild(newElement);
   newElement.addEventListener("click", function(event){ closePieMenu(event); });
+  newElement.style.pointerEvents = "all";
   // newElement.addEventListener("touchend", function(){ closePieMenu(event); });
 }
 

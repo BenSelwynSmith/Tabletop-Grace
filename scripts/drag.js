@@ -12,6 +12,9 @@ function findOffsetTopLeft(el) {
     return {left: x, top: y};
 }
 function isBottomTarget(ch, obj) {
+    if (ch.parentNode == null) { return false; }
+
+    // console.log("IsBottomTarget: " + ch + ", " + obj + ", " + ch.parentElement.classList);
     if (ch.parentElement.classList.contains('hole')) {
         if (!ch.parentElement.classList.contains('multi')) {
             return false;
@@ -20,9 +23,10 @@ function isBottomTarget(ch, obj) {
                 && !ch.parentElement.classList.contains('object-scope')) {
             return false;
         }
-    }
+    }    
     var p = ch.parentNode;
     while (p != codearea) {
+        // console.log("isBottomTarget: " + p + ", " + p.classList);        
         if (p.classList.contains('locked'))
             return false;
         p = p.parentNode;
@@ -33,11 +37,13 @@ function isBottomTarget(ch, obj) {
     var l = chXY.left - ch.offsetWidth / 2;
     var r = chXY.left + ch.offsetWidth;
     var m = objXY.left + obj.offsetWidth / 2;
-    if (objXY.top < t + 4 && objXY.top > t - 4) {
-        if (objXY.left >= l && objXY.left <= r)
+    var l2 = chXY.left;
+    var r2 = chXY.left + ch.offsetWidth;
+    var ot = objXY.top - markerHeight;
+    if (ot < t + markerHeight * 0.3 && ot > t - markerHeight) {
+        if (m + markerWidth * .6 >= l2 && m - markerWidth * .6 <= r2) {
             return true;
-        if (chXY.left >= objXY.left && chXY.left < m)
-            return true;
+        }
     }
     return false;
 }

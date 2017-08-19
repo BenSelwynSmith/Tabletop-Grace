@@ -44,50 +44,13 @@
   cursor:default;  
 }
 
-.osk {
-    width: 476px; /* to prevent the keys from wrapping */
-    z-index: 1000;
-}
-
-.osk-row {
-  text-align: center;
-  margin-bottom: 4px;
-}
-
-.osk-key {
-  box-sizing: border-box;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  display: inline-block;
-  width: 40px;
-  height: 40px;
-  background: #323231;
-  color: #A5C0CA;
-  border-radius: 5px;
-  text-align: center;
-  text-decoration: none;
-  font: 15px/1 entypo;
-  padding-top: 13px;
-}
-
-.osk-key + .osk-key {
-  margin-left: 8px;
-}
-
-.osk-key.space {
-  width: 241px;
-}
-
-.osk-key.close {
-    width: 65px;
-    position: absolute;
-    background: hsl(52, 80%, 47%);
-    color: black;
-}
-
 iframe {
-    border: 2px outset hsl(30, 60%, 70%);   
+    border: 2px outset hsl(30, 60%, 70%);
+   /*  width: 50%;
+    height: 50%; */
     position: absolute;
+    /* left:0px;
+    top:0px; */
 }
 
 
@@ -112,7 +75,7 @@ html, body {
     width: 100%;
     /* height: 90vh; /* Work around Chrome bug 168840*/
     /* height: calc(99vh - 40px); */
-    height: 100%;
+    height: 95%;
 }
 #desaturator {
     position: absolute;
@@ -136,7 +99,7 @@ html, body {
     width: 99%;
     /*height: 90vh;  Work around Chrome bug 168840*/
     /*height: calc(99vh - 40px);*/
-    height: 100%;
+    height: 95%;
     background: #ddd;
     position: relative;
     float: left;
@@ -166,13 +129,13 @@ html, body {
     top: 0px;
     left: 0px;
     right: 200px;
-    z-index: 1001;
+    z-index: 100;
     display: none;
     pointer-events: none;
 }
 #outputarea {
     width: 1%;
-    height: 100%;
+    height: 95%;
     order: 3;
     -webkit-order: 3;
     -ms-flex-order: 3;
@@ -199,7 +162,7 @@ html, body {
 }
 
 #expand-button{
-  z-index: 1001; /* 1 higher than maximum tile z-Index */
+  z-index: 6;
   position: absolute;
   top: 50%;
   left: -20px;  
@@ -772,19 +735,19 @@ ul.popup-menu li:hover {
     #toolbox {
         width: 100px;
     }
-    /* #standard-canvas {
+    #standard-canvas {
         width: 1%;
         height: 125px;
         left: calc(100% - 127px);
-    } */
-    /* #outputarea {
+    }
+    #outputarea {
         width: 130px;
     }
     #outputarea textarea {
         width: 120px;
         margin-top: 130px;
         height: 120px;
-    } */
+    }
     #category-bar {
         left: calc(100% - 137px);
     }

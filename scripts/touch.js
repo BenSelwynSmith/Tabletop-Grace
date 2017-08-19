@@ -13,26 +13,46 @@ var segmentTouches = {};
 //Squared distance in pixels
 var pieMenuMoveThresholdCount = 10;
 var pieMenuMoveThresholdDistance = 40;
+var tileMenuMoveThresholdDistance = 30;
 var wMenuThresholdDistance = 50;
 var optMoveThresholdDistance = 2;
 var btnMoveThresholdDistance = 2;
 var segMoveThresholdDistance = 20;
+var secMenuDistance = 100;
 var currentFocus;
+var pieMenuEndDelay = 100;
+var shortPress = 150;
+var longPress = 400;
+
+var aceContent;
 
 var interactMode = 0;
 var moveCounter = 0;
 
 var toDeg = (180 / Math.PI);
-var t1v;
-var t2v;
-var lastAngle;
-var lastRot;
-var lastX;
-var lastY;
+var toRad = Math.PI / 180;
+var lastV;
+var lastAng;
+var lastMag;
+var minAngle = 5;
+var angleScale = 0.2;
+var minDist = 8;
+var distScale = 0.5;
+
+var sameDirThresh = 10 * toRad //10deg
+var rotateMinThresh = 3 * toRad //3deg
+var moveThresh = 1;
+var lastUpdate;
+
+var lastCounter;
+var lastType;
+var lastThresh = 5;
 
 var tileZIndex = 5;
 var tileLastZIndex = tileZIndex;
 var tileMaxZIndex = 1000;
+
+var keyboards = [];
 
 
 function enableTouch() {
@@ -42,8 +62,18 @@ function enableTouch() {
   // });
   if (window.frameElement) {
     //This is running in an iframe, this is intended behaviour so don't load scripts otherwise
+    aceContent = document.getElementsByClassName("ace_content")[0];
     addPieTouch();
-    addTileTouch(); 
+    addTileTouch();
+    // keyboards[0] = Oskar();
+    // keyboards[1] = Oskar(1);
+    // for (var i = 0; i < keyboards.length; i++) {
+      // keyboards[i].style.position = "absolute";
+    // }
+    // hideKeyboard();
+
+    // console.log(keyboard);
+    // keyboard.appendTo(document.getElementById("stdout_text"));
   }
 }
 
@@ -75,9 +105,12 @@ function addPieTouch() {
   codearea.addEventListener('touchstart', pieTouchStart);
   codearea.addEventListener('touchmove', pieTouchMove);
   codearea.addEventListener('touchend', pieTouchEnd);
-  codearea.addEventListener('click', function(event) { 
-    showPieMenu(event.pageX, event.pageY);
-  });
+  aceContent.addEventListener('touchstart', pieTouchStart);
+  aceContent.addEventListener('touchmove', pieTouchMove);
+  aceContent.addEventListener('touchend', pieTouchEnd);
+  // codearea.addEventListener('click', function(event) {
+    // showPieMenu(event.pageX, event.pageY);
+  // });
   codearea.t1 = codearea.t2 = null;
 }
 
@@ -98,18 +131,31 @@ function addButtonTouch(btn, func, src) {
 }
 
 function addWMenuTouch() {
-  for (var i = 0; i < 4; i++) {    
+  windowarea = document.getElementById("windowarea");
+  windowarea.style.pointerEvents = "none";
+  var blank = document.getElementById("blank");
+  blank.addEventListener('click', function(event) { event.preventDefault(); });
+  blank.addEventListener('touchstart', function(event) { event.preventDefault(); });
+  blank.addEventListener('touchmove', function(event) { event.preventDefault(); });
+  blank.addEventListener('touchend', function(event) { event.preventDefault(); });
+
+
+  for (var i = 0; i < 4; i++) {
     var id = "svg_" + i;
     var elem = document.getElementById(id);
-    elem.addEventListener('touchstart', function() { wMenuStart(event); });
-    elem.addEventListener('touchmove', function() { wMenuMove(event); });
-    elem.addEventListener('touchend', function() { wMenuEnd(event); });
+    elem.addEventListener('touchstart', function() { event.preventDefault(); });
+    elem.addEventListener('touchmove', function() { event.preventDefault(); });
+    elem.addEventListener('touchend', function(event) { wMenuEnd(event); });
+    elem.addEventListener('click', function(event) { showWindowMenu2(event); event.preventDefault(); });
+    elem.style.pointerEvents = "all";
+    addBlockWindow(i);
+    windows[i].style.display = "none";
   }
 }
 
 
 function btnTouchStart(event) {
-  for (var i = 0; i < event.targetTouches.length; i++) {    
+  for (var i = 0; i < event.targetTouches.length; i++) {
     var id = event.targetTouches[i].identifier;
 
     if (!(id in btnTouches)) {
@@ -133,7 +179,7 @@ function btnTouchMove(event) {
       var y = event.changedTouches[i].clientY;
       var dist = Math.sqrt(Math.pow(x - btnTouches[i].x, 2) + Math.pow(y - btnTouches[i].y, 2));
       if (dist > btnMoveThresholdDistance) {
-        delete btnTouches[id];        
+        delete btnTouches[id];
         continue;
       }
     }
@@ -151,7 +197,8 @@ function btnTouchEnd(event) {
   }
 }
 
-function wMenuStart(event,idx) {  
+function wMenuStart(event,idx) {
+  event.preventDefault();
   // var idx = ((event.target.getAttribute("id").split("_"));
   var target = event.target;
   while (!(target.tagName == "svg") && target.parentNode != null) {
@@ -160,12 +207,12 @@ function wMenuStart(event,idx) {
   var idx = target.getAttribute("id").split("_")[1];
 
   // console.log("wMenuStart: " + idx + "," + target);
-  for (var i = 0; i < event.targetTouches.length; i++) {    
+  for (var i = 0; i < event.targetTouches.length; i++) {
     var id = event.targetTouches[i].identifier;
 
     if (!(id in windowMenuTouches)) {
       //New Touch Event
-      event.preventDefault();
+
       var x = event.targetTouches[i].clientX;
       var y = event.targetTouches[i].clientY;
 
@@ -179,7 +226,7 @@ function wMenuMove(event) {
   for (var i = 0; i < event.changedTouches.length; i++) {
     var id = event.changedTouches[i].identifier;
     if (!(id in windowMenuTouches)) { continue; }
-  
+
     //Distance check
     var x = event.changedTouches[i].clientX;
     var y = event.changedTouches[i].clientY;
@@ -190,16 +237,20 @@ function wMenuMove(event) {
         delete windowMenuTouches[id];
       }
     }
-  
+
   }
 }
 
 function wMenuEnd(event) {
-  console.log("wMenuEnd");
+  // console.log("wMenuEnd");
+  event.preventDefault();
   for (var i = 0; i < event.changedTouches.length; i++) {
-    var id = event.changedTouches[i].identifier;
-    if (!(id in windowMenuTouches)) { continue; }    
-    delete windowMenuTouches[id];
+    var x = event.changedTouches[i].clientX;
+    var y = event.changedTouches[i].clientY;
+    showWindowMenu2(event, x, y)
+    // var id = event.changedTouches[i].identifier;
+    // if (!(id in windowMenuTouches)) { continue; }
+    // delete windowMenuTouches[id];
   }
 }
 
@@ -208,7 +259,7 @@ function wMenuCheck(touchEvent, wMenuTouch) {
   var y2 = wMenuTouch.y - touchEvent.clientY;
   var targetAngle = [90,180,0,-90];
   var xAngle = Math.atan2(y2,x2) * toDeg;
-  // var yAngle = 90 - xAngle;  
+  // var yAngle = 90 - xAngle;
   var success = 0;
   var variance = 45;
   // console.log("xA: " + (xAngle * toDeg));
@@ -217,25 +268,25 @@ function wMenuCheck(touchEvent, wMenuTouch) {
   if (wMenuTouch.origin == 0) {
     console.log((targetAngle[0] - variance) + " to " + (targetAngle[0] + variance) + ", actual:" + xAngle);
     if (targetAngle[0] + variance > xAngle && targetAngle[0] - variance < xAngle) {
-      
+
       success = 1;
     }
   } else if (wMenuTouch.origin == 1) {
     console.log((targetAngle[1] - variance) + " to " + (targetAngle[1] + variance) + ", actual:" + xAngle);
     if (targetAngle[1] + variance > xAngle && targetAngle[1] - variance < xAngle) {
-      
+
       success = 1;
     }
   } else if (wMenuTouch.origin == 2) {
     console.log((targetAngle[2] - variance) + " to " + (targetAngle[2] + variance) + ", actual:" + xAngle);
     if (targetAngle[2] + variance > xAngle && targetAngle[2] - variance < xAngle) {
-      
+
       success = 1;
     }
   } else if (wMenuTouch.origin == 3) {
     console.log((targetAngle[3] - variance) + " to " + (targetAngle[3] + variance) + ", actual:" + xAngle);
     if (targetAngle[3] + variance > xAngle && targetAngle[3] - variance < xAngle) {
-      
+
       success = 1;
     }
   }
@@ -247,7 +298,7 @@ function wMenuCheck(touchEvent, wMenuTouch) {
 
 
 function optTouchStart(event) {
-  for (var i = 0; i < event.targetTouches.length; i++) {    
+  for (var i = 0; i < event.targetTouches.length; i++) {
     var id = event.targetTouches[i].identifier;
 
     if (!(id in optTouches)) {
@@ -290,6 +341,12 @@ function optTouchEnd(event) {
 }
 
 function pieTouchStart(event) {
+  var s = "Touches: ";
+  for (var i = 0; i < event.touches.length; i++) {
+    s += event.touches[i].identifier + " ";
+  }
+  console.log(s);
+
   event.preventDefault();
   var menus = codearea.getElementsByClassName('popup-menu');
   if (menus.length) {
@@ -304,10 +361,9 @@ function pieTouchStart(event) {
   if (currentFocus) {
     currentFocus.blur();
     currentFocus = null;
-    return;
   }
 
-  for (var i = 0; i < event.targetTouches.length; i++) {    
+  for (var i = 0; i < event.targetTouches.length; i++) {
     var id = event.targetTouches[i].identifier;
 
     if (!(id in pieMenuTouches)) {
@@ -319,24 +375,11 @@ function pieTouchStart(event) {
       pieMenuTouches[id] = {x:x, y:y, updates:0, ix:window.frameElement.offsetLeft, iy:window.frameElement.offsetTop};
       pieMenuTouches[id].sx = event.targetTouches[i].screenX;
       pieMenuTouches[id].sy = event.targetTouches[i].screenY;
+      pieMenuTouches[id].id = id;
 
-      if (codearea.t1 == codearea.t2 == null) {
-        codearea.t1 = id;
-      } else if (codearea.t1 == null) {
-        if (codearea.t2 != id) {
-          codearea.t1 = id;
-        }
-      } else if (codearea.t2 == null) {
-        if (codearea.t1 != id) {
-          codearea.t2 = id;
-        }
-      }
 
-      if (codearea.t2 == codearea.t1) {
-        codearea.t2 = null;
-      }
 
-      /*if (codearea.t1 == null && (codearea.t2 != null || codearea.t2 != id)) {        
+      /*if (codearea.t1 == null && (codearea.t2 != null || codearea.t2 != id)) {
         codearea.t1 = id;
       } else if (codearea.t2 == null && (codearea.t1 != null || codearea.t1 != id)) {
         codearea.t2 = id;
@@ -355,21 +398,41 @@ function pieTouchMove(event) {
     var id = event.changedTouches[i].identifier;
     if (event.target == codearea && id in pieMenuTouches) {
       console.log("Move: " + id);
-      //Moves check
+      if (pieMenuTouches[id].dying) {
+        continue;
+      }
+      //Moves check - Number of updates since this touch began
       if (pieMenuTouches[id].updates > pieMenuMoveThresholdCount) {
-        windowTouches[id] = pieMenuTouches[id];
-        // windowTouches[id].alt = 0;
-        delete pieMenuTouches[id];
+        // console.log("ID M: " + id + "is dying");
+        pieMenuTouches[id].dying = 1;
+        window.setTimeout(pieTouchDelayedEnd, pieMenuEndDelay, id);
         continue;
       }
 
       //Distance check
       var x = event.changedTouches[i].clientX;
       var y = event.changedTouches[i].clientY;
-      var dist = Math.sqrt(Math.pow(x - pieMenuTouches[i].x, 2) + Math.pow(y - pieMenuTouches[i].y, 2));
+      var dist = Math.sqrt(Math.pow(x - pieMenuTouches[id].x, 2) + Math.pow(y - pieMenuTouches[id].y, 2));
       if (dist > pieMenuMoveThresholdDistance) {
         windowTouches[id] = pieMenuTouches[id];
         delete pieMenuTouches[id];
+
+        if (codearea.t1 == codearea.t2 == null) {
+          codearea.t1 = id;
+        } else if (codearea.t1 == null) {
+          if (codearea.t2 != id) {
+            codearea.t1 = id;
+          }
+        } else if (codearea.t2 == null) {
+          if (codearea.t1 != id) {
+            codearea.t2 = id;
+          }
+        }
+
+        if (codearea.t2 == codearea.t1) {
+          codearea.t2 = null;
+        }
+
         continue;
       }
 
@@ -399,315 +462,144 @@ function pieTouchMove(event) {
       }
     }
 
-    console.log("SR - T11: " + touch11 + ", T21: " + touch21);
+    // console.log("SR - T11: " + touch11 + ", T21: " + touch21);
     // console.log("SR: eventTouches: " + event.touches.length + ", windowTouches: " + windowTouches);
 
 
-    if (touch1 != null && touch2 != null) {      
-      var v1 = [touch1.clientX,touch1.clientY];
-      var v2 = [touch2.clientX,touch2.clientY];
-      console.log("SR0: " + v1[0] + "," + v1[1] + " - " + v2[0] + "," + v2[1]);
+    if (touch1 != null && touch2 != null) {
+      // var p1 = [touch1.clientX,touch1.clientY];
+      // var p2 = [touch2.clientX,touch2.clientY];
+      // console.log("SR0: " + v1[0] + "," + v1[1] + " - " + v2[0] + "," + v2[1]);
+
       
-      var start = 0;
+      if (lastUpdate) {
+        var v = [];      
+        v[0] = [touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY];
+        v[1] = [lastUpdate.touch2.clientX - lastUpdate.touch1.clientX, lastUpdate.touch2.clientY - lastUpdate.touch1.clientY];
+        v[2] = [touch1.clientX - lastUpdate.touch1.clientX, touch1.clientY - lastUpdate.touch1.clientY];
+        v[3] = [touch2.clientX - lastUpdate.touch2.clientX, touch2.clientY - lastUpdate.touch2.clientY];
+        
 
-      if (t1v == null) {
-        t1v = v1;
-        start = 1;
-      }
-      if (t2v == null) {
-        t2v = v2;
-        start = 1;
-      } 
-
-      if (!start) {
-        //Scaling
-
-        //Vector of last movement
-        var v11 = [v1[0] - t1v[0], v1[1] - t1v[1]];
-        var v21 = [v2[0] - t2v[0], v2[1] - t2v[1]];        
-        //Magnitude
-        var v1m = Math.sqrt(Math.pow(v11[0],2) + Math.pow(v11[1],2));
-        var v2m = Math.sqrt(Math.pow(v21[0],2) + Math.pow(v21[1],2));
-
-        //Vector between new position of both
-        var v0 = [v1[0] - v2[0], v1[1] - v2[1]];
-        var v0m = Math.sqrt(Math.pow(v0[0],2) + Math.pow(v0[1],2));
-
-        //Dot between 1 and 0, and 2 and 0
-        var dot1 = v11[0] * v0[0] + v11[1] * v0[1];
-        var dot2 = v21[0] * v0[0] + v21[1] * v0[1];
-
-        //Angle between v1 and v0, and v2 and v0, in rads
-        var a1 = (dot1 / (v1m * v0m)) * toDeg;
-        var a2 = (dot2 / (v2m * v0m)) * toDeg;
-
-        console.log("SR Angle: " + a1 + "," + a2);
-
-        var magicNumber = 57;
-        //Magic number 57
-        //Around 57, -57 = <-- -->
-        //      -57,  57 = --> <--
-        var variance = 15;
-        var scale = 30;
-        var scaled = 1;
-        if (!isNaN(a1) && !isNaN(a2)) {
-          if (a2 - a1 < variance) {
-            //Drag
-
-            var x = touch1.screenX;
-            var y = touch1.screenY;      
-            var iframe = window.frameElement;
-            var dx,dy,l2,t2;
-            if (lastX != null) {
-              dx = x - lastX;
-              dy = y - lastY;
-              moveWindow(dx,dy);              
-              console.log("Dragging: " + dx + "," + dy);
-            }
-            lastX = x;
-            lastY = y;
-          } else if (a1 < magicNumber + variance && a1 > magicNumber - variance && a2 > -magicNumber - variance && a2 < -magicNumber + variance) {
-            //Increase scale #TODO adjust scale by touch movement
-            // scaleWindow(scale);            
-          } else if (a2 < magicNumber + variance && a2 > magicNumber - variance && a1 > -magicNumber - variance && a1 < -magicNumber + variance) {
-            // scaleWindow(-scale);            
-          } else {
-            scaled = 0;
-          }
-
-
-          //Rotation
-          var rotScale = 1;
-          var maxRot = 10;
-          if (scaled == 0) {                        
-            var dx = v2[0] - v1[0];
-            var dy = v2[1] - v1[1];
-            var vc1 = [v1[0] - t1v[0], v1[1] - t1v[1]];
-            var vc2 = [v2[0] - t2v[0], v2[1] - t2v[1]];
-            var noChange = 0;
-            if (Math.abs(vc1[0] + vc1[1]) < 2) {
-              noChange = 1;
-            }
-            if (Math.abs(vc2[0] + vc2[1]) < 2) {
-              noChange = 1;
-            }
-
-            //#TODO Fix:
-            //Same formula as scaling, but use line from t1 to t2 compared with previous line
-            //Angular difference between the two is rotation
-            
-            if (noChange == 0) {
-              var newAngle = Math.atan2(dy,dx) * toDeg;
-              var rot = 0;
-              if (lastAngle != null && (lastAngle > 0.1 || lastAngle < -0.1)) {
-                var da = newAngle - lastAngle;
-                rot = da * rotScale;
-                if (rot > maxRot) { rot = maxRot; }
-                if (rot < -maxRot) { rot = -maxRot; }
-
-                
-                if (da > 0.5) {
-                  // rotateWindow(rot);
-                } else if (da < -0.5) {
-                  // rotateWindow(rot);
-                }            
-                
-              }
-              console.log("SR: Rotate by " + rot + ", L: " + lastAngle + ", N: " + newAngle);
-              lastAngle = newAngle;
-            }
-          }          
+        var vm = [];      
+        for (var i = 0; i < 4; i++) {
+          vm[i] = Math.sqrt(Math.pow(v[i][0],2) + Math.pow(v[i][1],2));
         }
-        //Update new position
-        t1v = v1;
-        t2v = v2;
-      }
-    }
-  } else if (codearea.t1 != null) {        
-    //Dragging (first registered drag touch event)
-    console.log("Drag");
-    for (var i = 0; i < event.touches.length; i++) {
-      if (event.touches[i].identifierd == codearea.t1) {
-        touch1 = event.touches[i];
-      }
-    }
 
-    if (touch1 != null) {
-      console.log("Drag: " + touch1.clientX + "," + touch1.clientY);
+        var vd12 = v[0][0] * v[1][0] + v[0][1] * v[1][1];
+        var vd34 = v[2][0] * v[3][0] + v[2][1] * v[3][1];
+        
+        var a1 = toDeg * Math.atan2(v[0][1],v[0][0]);
+        var a2 = toDeg * Math.atan2(v[1][1],v[1][0]);
+        var a3 = toDeg * Math.atan2(v[2][1],v[2][0]);
+        var a4 = toDeg * Math.atan2(v[3][1],v[3][0]);
+        
+        // var va12 = Math.acos(vd12 / (vm[0] * vm[1]));
+        // var va34 = Math.acos(vd34 / (vm[2] * vm[3]));
+
+        var v3m = (Math.abs(v[2][0] + v[2][1]) > moveThresh);
+        var v4m = (Math.abs(v[3][0] + v[3][1]) > moveThresh);
+
+        console.log("Move: " + v3m + ", " + v4m);
+        // console.log("Angle: " + va12 + ", " + va34);
+        console.log("Angle : " + a1 + ", " + a2 + ", " + (a2 - a1));
+        console.log("Angle2: " + a3 + ", " + a4 + ", " + (a4 - a3));
+        
+        // var done = 0;
+        // if (v3m && v4m) {
+          // Dragging
+          // if (Math.abs(va34) < sameDirThresh) {
+            // Perform Dragging
+            // console.log("Drag");
+            // return;
+          // }
+        // } 
+
+        // if (!done && (v3m || v4m)) {
+          // if (Math.abs(va12) > rotateMinThresh) {
+            // console.log("Rotate");
+            // return;
+          // }
+        // }
+        // if (!done) { 
+          // console.log("Other");
+        // }
+        
+      }
+      lastUpdate = {
+        touch1 : {clientX: touch1.clientX, clientY: touch1.clientY},
+        touch2 : {clientX: touch2.clientX, clientY: touch2.clientY}
+      }
     }
   }
-
-  /*var v1x = t1.clientX - t1w.x;
-  var v1y = t1.clientY - t1w.y;
-  var v2x = t2.clientX - t2w.x;
-  var v2y = t2.clientY - t2w.y;  
-
-  var v1m = Math.sqrt(Math.pow(v1x,2) + Math.pow(v1y,2));
-  var v2m = Math.sqrt(Math.pow(v2x,2) + Math.pow(v2y,2));
-  
-
-
-  var vx = t2.clientX - t1.clientX;
-  var vy = t2.clientY - t1.clientY;
-  var vm = Math.sqrt(Math.pow(vx,2) + Math.pow(vy,2));
-
-  var dot1 = v1x * vx + v1y * vy;
-  var dot2 = v2x * vx + v2y * vy;
-
-
-  var a1 = dot1 / v1m * vm;
-  var a2 = dot2 / v2m * vm;
-  console.log("ScaleRotate: " + t1.clientX + "," + t1.clientY + " - " + t1w.x + "," + t1w.y + ", 2: " + t2.clientX + "," + t2.clientY + " - " + t2w.x + "," + t2w.y);
-  console.log("ScaleRotate: " + v1x + "," + v1y + " - " + v2x + "," + v2y + " - M: " + v1m + "," + v2m + ", D: " + dot1 + "," + dot2);
-  console.log("ScaleRotate: " + (a1*toDeg) + "," + (a2*toDeg));
-  */
-
-
-
-  /*if (codearea.t1 != null &&) {
-    //Dragging
-  } else if (
-
-
-     else if (event.target == codearea && id in windowTouches) {
-      //Moving Canvas
-      // if (windowTouches[id].alt < 2) {
-        //windowTouches[id].alt++;
-        // continue;
-      // }
-      console.log("Move: " + codearea.t1 + "," + codearea.t2 + "," + id + "," + 
-            (codearea.t1 != null && codearea.t2 != null && codearea.t1 == id));
-      if (id != codearea.t1 && id != codearea.t2) { continue; }
-
-      //Perform calc for both t1 and t2 from t1      
-
-      if (codearea.t1 == id) {
-        var t1 = event.changedTouches[id];        
-        var t2;
-        var t12 = windowTouches[id];
-        var t22;
-
-        var vx = t1.clientX - t12.x;
-        var vy = t1.clientY - t12.y;
-        var xAngle = Math.atan2(vx,vy) * toDeg;
-        console.log("T1 Angle: " + xAngle);
-
-
-        if (codearea.t2 != null) {        
-          t2 = event.touches[codearea.t2];
-          t22 = windowTouches[codearea.t2];  
-          var vx2 = t2.clientX - t22.x;
-          var vy2 = t2.clientY - t22.y;
-          var xAngle2 = Math.atan2(vx2,vy2) * toDeg;
-          console.log("T2 Angle: " + xAngle2);
-        }
-        
-      }
-        
-
-
-
-
-      // if (codearea.t1 != null && codearea.t2 != null && codearea.t1 == id) {
-      //   var t1 = event.changedTouches[id];
-      //   var t2 = event.touches[codearea.t2];
-      //   if (scaleRotate(t1,t2,windowTouches[codearea.t1],windowTouches[codearea.t2])) {
-      //     //
-      //     codearea.changed = 1;          
-      //   } else {
-      //     codearea.changed = 0;
-      //   }
-      //   continue;
-      // }
-
-      // if (id == codearea.t2 && codearea.t1 != null) {
-      //   continue;
-      // }
-
-      var x = event.changedTouches[i].screenX;
-      var y = event.changedTouches[i].screenY;
-      var iframe = window.frameElement;
-      var dx = windowTouches[id].sx - x;
-      var dy = windowTouches[id].sy - y;
-      var l2 = windowTouches[id].ix - dx;
-      var t2 = windowTouches[id].iy - dy;
-      iframe.style.left = (l2) + 'px';
-      iframe.style.top = (t2) + 'px';      
-      console.log("Client: " + x + "," + y +" - Page; " + event.changedTouches[i].screenX + "," + event.changedTouches[i].screenY);
-      // console.log("Move: " + l2 + "," + t2 + "," + windowTouches[id].ix + "," + windowTouches[id].iy + "," + x + "," + y + "," + windowTouches[id].x + "," + windowTouches[id].y + ",M:" + moveCounter + ",ID:" + id);
-      //window.setTimeout(function () { iframe.style.left = l2 + 'px'; iframe.style.top = t2 + 'px'},5);
-      // windowTouches[id].x = x;
-      // windowTouches[id].y = y;
-      // windowTouches[id].ix = l2;
-      // windowTouches[id].iy = t2;
-
-      // alert("Moving iframe to " + l2 + "," + t2);
-      // alert("Moving iframe to " + (windowTouches[id].ix + dx) + "," + (windowTouches[id].iy + dy));
-      // windowTouches[id].alt = 0;
-    }
-  }*/
-  moveCounter++;
-  // event.preventDefault();
-  // event.stopPropagation();
 }
 
 function pieTouchEnd(event) {
 
   for (var i = 0; i < event.changedTouches.length; i++) {
-    var id = event.changedTouches[i].identifier;    
+    var id = event.changedTouches[i].identifier;
     console.log("End Touch: " + id + "," + codearea.t1 + "," + codearea.t2 + "," + (codearea.t1 == id) + "," + (codearea.t2 == id));
     if (id in pieMenuTouches) {
-      if (event.target == codearea) {
-        showPieMenu(pieMenuTouches[id].x,pieMenuTouches[id].y);
+      if (pieMenuTouches[id].dying) {
+        continue;
       }
-      delete pieMenuTouches[id];
+      pieMenuTouches[id].dying = 1;
+      console.log("ID E: " + id + "is dying");
+      window.setTimeout(pieTouchDelayedEnd, pieMenuEndDelay, id);
+      continue;
     } else if (id in windowTouches) {
-      /*if (event.target == codearea) {
-        if (id != codearea.t1 && id != codearea.t2) { continue; }
-
-        //Perform calc for both t1 and t2 from t1
-        //Set codearea var so t2 doesn't do anything
-        if (codearea.t1 != null && codearea.t2 != null && codearea.t1 == id) {
-          var t1 = event.changedTouches[id];
-          var t2 = event.touches[codearea.t2];
-          if (scaleRotate(t1,t2,windowTouches[codearea.t1],windowTouches[codearea.t2])) {
-            //
-          }
-        }
-
-        //Moving Canvas
-        var x = event.changedTouches[i].screenX;
-        var y = event.changedTouches[i].screenY;
-        var iframe = window.frameElement;
-        var dx = windowTouches[id].sx - x;
-        var dy = windowTouches[id].sy - y;
-        var l2 = windowTouches[id].ix - dx;
-        var t2 = windowTouches[id].iy - dy;
-        window.setTimeout(function () { iframe.style.left = l2 + 'px'; iframe.style.top = t2 + 'px'},10);        
-        // iframe.style.left = (l2) + 'px';
-        // iframe.style.top = (t2) + 'px';      
-        // iframe.left = windowTouches[id].ix + dx;
-        // iframe.top = windowTouches[id].iy + dy;
-      }*/
-      
       delete windowTouches[id];
     }
-    if (id == codearea.t1) { codearea.t1 = null; t1v = null; lastAngle = null; lastX = lastY = null;}
-    if (id == codearea.t2) { codearea.t2 = null; t2v = null; lastAngle = null; lastX = lastY = null;}  
-    console.log("End Touch2: " + id + "," + codearea.t1 + "," + codearea.t2 + "," + (codearea.t1 == id) + "," + (codearea.t2 == id)); 
+    if (id == codearea.t1) { codearea.t1 = null; lastUpdate = null; }
+    if (id == codearea.t2) { codearea.t2 = null; lastUpdate = null; }
+    console.log("End Touch2: " + id + "," + codearea.t1 + "," + codearea.t2 + "," + (codearea.t1 == id) + "," + (codearea.t2 == id));
   }
   event.preventDefault();
 }
 
+function pieTouchDelayedEnd(id) {
+  // console.log("DelayEnd: " + id);
+  if (!(id in pieMenuTouches)) { return; }
+  if (pieMenuTouches[id].done) { delete pieMenuTouches[id]; return; }
 
-function pieTouchToggle(event) {
+  var p1 = [pieMenuTouches[id].x,pieMenuTouches[id].y];
+  //Sec menu
+  var count = 0;
+  for (var i in pieMenuTouches) {
+    var p2 = [pieMenuTouches[i].x,pieMenuTouches[id].y];
+    var dist = Math.sqrt(Math.pow(p2[0] - p1[0], 2) + Math.pow(p2[1] - p1[1], 2));
+    // console.log("DelayEnd: " + id + ", Dist:" + (dist < secMenuDistance) + ", oid: " + i + ", done: " +
+        // pieMenuTouches[i].done + ", dying: " + pieMenuTouches[i].dying);
+    if (pieMenuTouches[i].id == id) { continue; }
+    if (pieMenuTouches[i].done) { continue; }
+    if (!pieMenuTouches[i].dying) { continue; }
+
+    if (dist < secMenuDistance) {
+      // console.log("showSecMenu");
+      showSecMenu(p1[0] + (p2[0] - p1[0]) * .5,p1[1] + (p2[1] - p1[1]) * .5);
+      delete pieMenuTouches[id];
+      delete pieMenuTouches[i];
+      return;
+    }
+    count++;
+  }
+  // console.log("PieTouchDelayEnd: " + id + ", " + count);
+
+  //Pie menu
+  if (currentView == 0) {
+    showPieMenu(p1[0],p1[1]);
+  }
+  delete pieMenuTouches[id];
+}
+
+
+/*function pieTouchToggle(event) {
   console.log("PieTouch: " + event.changedTouches.length);
-  for (var i = 0; i < event.changedTouches.length; i++) {    
+  for (var i = 0; i < event.changedTouches.length; i++) {
     var x = event.changedTouches[i].clientX;
     var y = event.changedTouches[i].clientY;
     showPieMenu(x,y);
   }
-}
+}*/
 
 function addInputEventsToTile(tile) {
   input = tile.getElementsByTagName('input');
@@ -734,89 +626,112 @@ function addTileTouchToTile(tile) {
 }
 
 function addTileTouch() {
-  //Adds touch listeners for touch start, move and end  
+  //Adds touch listeners for touch start, move and end
   var tiles = codearea.getElementsByClassName('tile');
-  for (var i = 0; i < tiles.length; i++) {    
+  for (var i = 0; i < tiles.length; i++) {
     addTileTouchToTile(tiles[i]);
   }
   console.log("Added touch to tiles " + tiles.length);
+  holes = codearea.getElementsByClassName("hole");
 }
 
 function tileTouchStart(event) {
-  //Setup new touch event
-  // console.log("TouchStart " + event.targetTouches.length);
+  event.stopPropagation();
+  event.preventDefault();
   for (var i = 0; i < event.targetTouches.length; i++) {
-    var target, parent;
-    if (interactMode == 0) {
-      target = event.targetTouches[i].target;
-      parent = target.parentNode;
-    } else if (interactMode == 1) {
-      target = event.targetTouches[i].target.tile;
-      parent = target.parentNode.parentNode;
-    }
-    var origTarget = target;
+    var target = event.targetTouches[i].target;
     var id = event.targetTouches[i].identifier;
-    console.log("TouchStart: " + id);
+    console.log("TileTouchStart: " + id);
 
-    if (target.tagName.toUpperCase() == "INPUT") {
-      // event.preventDefault();      
-      target.focus();
-      target.value = target.value;
-      currentFocus = target;
-      event.stopPropagation();
-      continue;
+    var tileTarget = target;
+    while (!tileTarget.classList.contains("tile")) {
+      tileTarget = tileTarget.parentNode;
     }
 
-    while (target != null) {
-      if (!target.classList.contains('tile')) {
-        target = target.parentNode;        
-      } else { break; }
-    }
-    parent = target.parentNode;
-    
-    tileBringToFront(target);
+    tileBringToFront(tileTarget);
 
+    //New Touch Event
     if (!(id in touches)) {
-      //New Touch Event
+
+
+
       event.preventDefault();
-      var xy = findOffsetTopLeft(target);
+      var xy = findOffsetTopLeft(tileTarget);
       var x = event.targetTouches[i].clientX - xy.left;
       var y = event.targetTouches[i].clientY - xy.top;
 
-      if (origTarget.classList.contains('var-name')
-            && x > target.offsetWidth
-            && target.innerHTML) {
-        //#TODO - Change to handle touch event
-        popupVarMenu(event);
-        continue;
-      }
-
-      console.log("Start: " + x + "," + y);
-
-      touches[id] = {x:(event.targetTouches[i].clientX - xy.left), y:(event.targetTouches[i].clientY - xy.top),
-          target:target, hasContinue:false  };
-      console.log("Start set: " + touches[id].x + "," + touches[id].y + "," + touches[id].target + "," + touches[id].hasContinue);
 
 
-      
+       touches[id] = {x:(event.targetTouches[i].clientX - xy.left), y:(event.targetTouches[i].clientY - xy.top),
+          target:target, hasContinue:0, updates:0, xy: xy, ts:Date.now(), tile:tileTarget, ox: event.targetTouches[i].clientX, oy: event.targetTouches[i].clientY  };
+      console.log("New Touch: " + id + ", " + touches[id].x + ", " + touches[id].y + ", " + touches[id].target + ", " + touches[id].hasContinue
+        + ", " + touches[id].xy  + ", " + touches[id].ts + ", " + touches[id].tile);
+    }
+  }
+}
 
-      //After dragContinue
+function tileTouchMove(event) {
+  event.stopPropagation();
+  event.preventDefault();
+  for (var i = 0; i < event.changedTouches.length; i++) {
+    var target = event.targetTouches[i].target;
+    var id = event.targetTouches[i].identifier;
+    console.log("TileTouchMove: " + id);
+    if (!(id in touches)) { continue; }
+    if (!touches[id].hasContinue) {
+      //Moves check - Number of updates since this touch began
+      var timeDif = Date.now() - touches[id].ts;
+
+
+      // var varTile = touches[id].tile.classList.contains('var');
+      // var inputTile = touches[id].target.tagName.toUpperCase() == "INPUT";
+
+
+
+      // if (timeDif > shortPress) {
+        // if (!varTile && !inputTile) {
+          // console.log(">shortPress");
+          // touches[id].hasContinue = 1;
+        // }
+        // if (timeDif > longPress) {
+          // if (varTile || inputTile) {
+            // console.log(">longPress");
+            // touches[id].hasContinue = 1;
+          // }
+        // }
+      // }
+
+      //Distance check
+      // if (!touches[id].hasContinue) {
+        var x = event.changedTouches[i].clientX;
+        var y = event.changedTouches[i].clientY;
+        var dist = Math.sqrt(Math.pow(x - touches[id].ox, 2) + Math.pow(y - touches[id].oy, 2));
+        if (dist > tileMenuMoveThresholdDistance) {
+          touches[id].hasContinue = 1;
+          console.log(">distance: " + dist);
+        }
+      // }
+    }
+
+    target = touches[id].tile;
+    var parent = target.parentNode;
+    var origTarget = target;
+
+    if (touches[id].hasContinue == 1) {
+      //Start Drag
+
+      //If tile is in another tile
       var originalHole = null;
       if (parent != codearea) {
           originalHole = parent;
           originalHole.style.width = originalHole.offsetWidth + 'px';
           originalHole.style.height = originalHole.offsetHeight + 'px';
       }
-      if (interactMode == 0) {
-        target.style.position = 'absolute';
-        target.style.top = xy.top + 'px';
-        target.style.left = xy.left + 'px';
-      } else if (interactMode == 1) {
-        target.parentNode.style.position = 'absolute';
-        target.parentNode.style.top = xy.top + 'px';
-        target.parentNode.style.left = xy.left + 'px';
-      }
-      
+      var xy = touches[id].xy;
+      target.style.position = 'absolute';
+      target.style.top = xy.top + 'px';
+      target.style.left = xy.left + 'px';
+
       var tmp = target;
       var runningTop = xy.top;
       if (event.shiftKey) {
@@ -843,10 +758,11 @@ function tileTouchStart(event) {
       touches[id].originalHole = originalHole;
 
 
-      //After dragEnd
+      //Start dragging
+      addPointer(target);
       target.classList.add('selected');
       target.classList.add('dragging');
-      var ch = target.getElementsByClassName('tile');    
+      var ch = target.getElementsByClassName('tile');
       for (var j = 0; j < ch.length; j++) {
         ch[j].classList.add('dragging');
       }
@@ -856,7 +772,9 @@ function tileTouchStart(event) {
         tmp.classList.add('selected');
         tmp.classList.add('dragging');
         var ch2 = tmp.getElementsByClassName('tile');
+        if (!ch2) { continue; }
         for (var j = 0; j < ch.length; j++) {
+          if (!ch2[j]) { continue; }
           ch2[j].classList.add('dragging');
         }
       }
@@ -864,101 +782,153 @@ function tileTouchStart(event) {
         target.prev.next = false;
         target.prev = false;
       }
-      event.stopPropagation();
+      touches[id].hasContinue = 2;
     }
-  }
-}
 
-function tileTouchMove(event) {
-  // console.log("TouchMove " + event.targetTouches.length);
-  overlaidError.style.display = 'none';
-  event.preventDefault();
+    if (touches[id].hasContinue == 2) {
+      //Continue Drag
+      var top = (event.changedTouches[i].clientY - touches[id].y);
+      var left = (event.changedTouches[i].clientX - touches[id].x);
+      if (interactMode == 0) {
+        target.style.top = top + 'px';
+        target.style.left = left + 'px';
+      } else if (interactMode == 1) {
+        target.parentNode.style.top = top + 'px';
+        target.parentNode.style.left = left + 'px';
+      }
 
-  for (var i = 0; i < event.changedTouches.length; i++) {    
-    var id = event.changedTouches[i].identifier;
-    if (!(id in touches)) { continue; }
-    // if (event.target != touches[id].target) { return; }
-    touches[id].hasContinue = true;
-    var target = touches[id].target;
+      top += codearea.scrollTop;
+      left += codearea.scrollLeft;
+      // var bestHole = findHole(target,touches[id].x,touches[id].y,left,top,true);
+      var l2 = target.offsetLeft + target.offsetWidth * .5;
+      var r2 = l2;
+      var t2 = target.offsetTop - markerHeight * .9;
+      var b2 = t2;
+      // var r2 = target.offsetLeft + target.offsetWidth * .5;
+      // var b2 = target.offsetTop + markerHeight * 0.2;
+      var bestHole = findHole(target, l2, t2, r2, b2, true);
 
-    var top = (event.changedTouches[i].clientY - touches[id].y);
-    var left = (event.changedTouches[i].clientX - touches[id].x);
-    if (interactMode == 0) {
-      target.style.top = top + 'px';
-      target.style.left = left + 'px';
-    } else if (interactMode == 1) {
-      target.parentNode.style.top = top + 'px';
-      target.parentNode.style.left = left + 'px';
-    }
-    // console.log("Touch: " + id + ", op; " + touches[id].x + "," + touches[id].y + " - np: " + left + "," + top);
-    top += codearea.scrollTop;
-    left += codearea.scrollLeft;
-    // console.log("Touch: " + id + ", op; " + touches[id].x + "," + touches[id].y + " - np: " + left + "," + top);
 
-    // var tmp = target;
-    var bestHole = findHole(target,touches[id].x,touches[id].y,left,top,true);
-    // if (bestHole) {
-    // console.log("Move - Best: " + bestHole + ", " + touches[id].x + "," + touches[id].y + " - " + left + "," + top);
+      if (bestHole != null && bestHole.children.length == 0) {
+          bestHole.style.background = 'yellow';
+          var reason = {};
+          if (!holeCanHoldTile(bestHole, target, reason)) {
+              bestHole.style.background = 'pink';
+              overlayError(reason.error, bestHole);
+          }
+      }
 
-    // }
-    if (bestHole != null && bestHole.children.length == 0) {
-        bestHole.style.background = 'yellow';
-        var reason = {};
-        if (!holeCanHoldTile(bestHole, target, reason)) {
-            bestHole.style.background = 'pink';
-            overlayError(reason.error, bestHole);
+      var tmp = target;
+      while (typeof tmp.next != "undefined" && tmp.next) {
+        var last = tmp;
+        tmp = tmp.next;
+        tmp.style.top = (last.offsetTop + last.offsetHeight) + 'px';
+        tmp.style.left = last.offsetLeft + 'px';
+      }
+
+
+      for (var i=0; i<tiles.length; i++) {
+        // console.log("IsBottomTarget Call: " + ch + ", " + target);
+        var ch = tiles[i];
+        if (ch.classList.contains('dragging')) { continue; }
+        if (ch == target)
+            continue;
+        if (ch.parentNode == toolbox) { continue; }
+        if (isBottomTarget(ch, target)) {
+            ch.classList.add('bottom-join-target');
+        } else {
+            ch.classList.remove('bottom-join-target');
         }
-    }
-
-    var tmp = target;
-    while (typeof tmp.next != "undefined" && tmp.next) {
-      var last = tmp;
-      tmp = tmp.next;
-      tmp.style.top = (last.offsetTop + last.offsetHeight) + 'px';
-      tmp.style.left = last.offsetLeft + 'px';
-    }
-
-
-    for (var i=0; i<tiles.length; i++) {
-      var ch = tiles[i];      
-      if (ch.classList.contains('dragging')) { continue; }
-      if (ch == target)
-          continue;
-      if (isBottomTarget(ch, target)) {
-          ch.classList.add('bottom-join-target');
-      } else {
-          ch.classList.remove('bottom-join-target');
       }
     }
   }
 }
 
+/*f (touches[id].target.classList.contains('var')) {
+        if (timeDif < shortPress) {
+          popupVarMenu(event);
+          delete touches[id];
+          continue;
+        }
+      }
+
+      if (touches[id].target.tagName.toUpperCase() == "INPUT") {
+
+        target.focus();
+        // target.value = target.value;
+        currentFocus = target;
+
+        continue;
+      }*/
+
 function tileTouchEnd(event) {
-  //For touch end only changed touches show up,     
+  //For touch end only changed touches show up,
   event.preventDefault();
+  event.stopPropagation();
   for (var i = 0; i < event.changedTouches.length; i++) {
     var id = event.changedTouches[i].identifier;
     if (!(id in touches)) { continue; }
-    var target = touches[id].target;    
-    var x,y;
-    console.log("TouchEnd: " + id + ", " + target.classList);
-
-    var hadDragContinue = touches[id].hasContinue;    
-    overlaidError.style.display = 'none';
+    console.log("TileTouchEnd: " + id + ", hasContinue: " + touches[id].hasContinue);
+    var target = touches[id].target;
     var top = (event.changedTouches[i].clientY - touches[id].y);
     var left = (event.changedTouches[i].clientX - touches[id].x);
-    if (interactMode == 0) {
-      target.style.top = top + 'px';
-      target.style.left = left + 'px';
-    } else if (interactMode == 1) {
-      target.parentNode.style.top = top + 'px';
-      target.parentNode.style.left = left + 'px';
+    if (touches[id].hasContinue == 0) {
+      var timeDif = Date.now() - touches[id].ts;
+      var varTile = touches[id].tile.classList.contains('var');
+      var inputTile = touches[id].target.tagName.toUpperCase() == "INPUT";
+
+
+      //'Click' Events
+      console.log("TileTouchEnd: " + id + ", timeDif: " + timeDif + ", var: " + varTile + ", input: " + inputTile + ", tile: "
+        + touches[id].tile.classList.contains("tile") + ", class: " + touches[id].tile.classList);
+      if (timeDif < shortPress) {
+        if (varTile) {
+          popupVarMenu(event);
+          delete touches[id];
+          continue;
+        } else if (inputTile) {
+          //Start input
+          target.focus();
+          currentFocus = target;
+          // target.value = target.value;
+          target.selectionStart = target.selectionEnd = target.value.length;
+          showKeyboard(target);
+          delete touches[id];
+          continue;
+        } else if (touches[id].tile.classList.contains('tile')) {
+          //Show Tile Menu
+          showTileMenu(left + touches[id].x, top + touches[id].y, touches[id].tile);
+          delete touches[id];
+          continue;
+        }
+      } else {
+        showTileMenu(left + touches[id].x, top + touches[id].y, touches[id].tile);
+        delete touches[id];
+        continue;
+      }
+      // delete touches[id];
+      // continue;
     }
+
+
+
+    target = touches[id].tile;
+    var x,y;
+    // console.log("TouchEnd: " + id + ", " + target.classList);
+
+    var hadDragContinue = touches[id].hasContinue;
+    overlaidError.style.display = 'none';
+    // var top = (event.changedTouches[i].clientY - touches[id].y);
+    // var left = (event.changedTouches[i].clientX - touches[id].x);
+    target.style.top = top + 'px';
+    target.style.left = left + 'px';
+
     top += codearea.scrollTop;
     left += codearea.scrollLeft;
     target.classList.remove('selected');
     target.classList.remove('dragging');
-    var ch = target.getElementsByClassName('tile');    
+    removePointer(target);
+    var ch = target.getElementsByClassName('tile');
     for (var j = 0; j < ch.length; j++) {
       ch[j].classList.remove('dragging');
     }
@@ -973,8 +943,15 @@ function tileTouchEnd(event) {
           ch2[j].classList.remove('dragging');
         }
     }
-    var bestHole = findHole(target,touches[id].x,touches[id].y,left,top,false);
-    console.log("End - Best: " + bestHole + ", " + touches[id].x + "," + touches[id].y + " - " + left + "," + top);    
+    var l2 = target.offsetLeft + target.offsetWidth * .5;
+    var r2 = l2;
+    var t2 = target.offsetTop - markerHeight * .9;
+    var b2 = t2;
+      // var r2 = target.offsetLeft + target.offsetWidth * .5;
+      // var b2 = target.offsetTop + markerHeight * 0.2;
+    var bestHole = findHole(target, l2, t2, r2, b2,false);
+
+    console.log("End - Best: " + bestHole + ", " + touches[id].x + "," + touches[id].y + " - " + left + "," + top);
     console.log("End get: " + touches[id].x + "," + touches[id].y + "," + touches[id].target + "," + touches[id].hasContinue);
     if (bestHole != null) {
       bestHole.style.background = '';
@@ -995,10 +972,10 @@ function tileTouchEnd(event) {
     for (var i=0; i<tiles.length; i++) {
       var ch = tiles[i];
       ch.classList.remove('bottom-join-target');
-      if (bestHole)
-          continue;
-      if (ch == target)
-          continue;
+      // console.log("IsBottomTarget Call:" + ch + ", " + target);
+      if (bestHole) { continue; }
+      if (ch == target) { continue; }
+      if (ch.parentNode == toolbox) { continue; }
       var t = ch.offsetTop + ch.offsetHeight;
       if (isBottomTarget(ch, target)) {
         if (ch.next) {
@@ -1042,30 +1019,23 @@ function tileTouchEnd(event) {
     runOnDrop(target);
     reflow();
     updateTileIndicator();
-    if (!hadDragContinue) {
-      if (touches[id].target.classList.contains('var')) {
-        popupVarMenu(event);
-        // So codearea click doesn't remove it
-        event.stopPropagation();
-      } else if (touches[id].target.classList.contains('tile')) {
-        //Show Tile Menu
-        showTileMenu(left + touches[id].x, top + touches[id].y, event.target);
-      }
-    }
     generateCode();
     checkpointSave();
     delete touches[id];
   }
 }
 
-function findHole(target,x,y,left,top,b) {
+// function findHole(target,x,y,left,top,b) {
+function findHole(target, left, top, right, bottom, b) {
   var holeSize = 1000000;
   var bestHole = null;
   var bestIdx = -1;
+
+
   for (var i=holes.length - 1; i>=0; i--) {
-    // console.log("ChildNodes: " + holes[i].childNodes.length);    
+    // console.log("ChildNodes: " + holes[i].childNodes.length);
     var h = holes[i];
-    if (h.childNodes.length) { continue; }    
+    if (h.childNodes.length) { continue; }
     if (b) {
       h.style.background = '';
     }
@@ -1074,14 +1044,19 @@ function findHole(target,x,y,left,top,b) {
     var xy = findOffsetTopLeft(h);
     xy.top = xy.top + codearea.offsetTop;
     xy.left = xy.left + codearea.offsetLeft;
-    if (left + x < xy.left
-            || left + x > xy.left + h.offsetWidth) {
-      continue;
-    }
-    if (top + y < xy.top
-            || top + y > xy.top + h.offsetHeight) {
-      continue;
-    }
+    console.log("Tile: " + left + ", " + top + ", " + right + ", " + bottom);
+    console.log("Hole: " + xy.left + ", " + xy.top + ", " + (xy.left + h.offsetWidth) + ", " + (xy.top + h.offsetHeight));
+
+    if (left < xy.left || right > xy.left + h.offsetWidth) { continue; }
+    if (top < xy.top - h.offsetHeight * .3 || bottom > xy.top + h.offsetHeight * .9) { continue; }
+    // if (left + x < xy.left
+    //         || left + x > xy.left + h.offsetWidth) {
+    //   continue;
+    // }
+    // if (top + y < xy.top
+    //         || top + y > xy.top + h.offsetHeight) {
+    //   continue;
+    // }
     if (h.offsetWidth * h.offsetHeight < holeSize) {
       holeSize = h.offsetWidth * h.offsetHeight;
       bestHole = h;
@@ -1092,6 +1067,6 @@ function findHole(target,x,y,left,top,b) {
   if (bestHole != null) {
     name = bestHole.parentNode.classList;
   }
-  // console.log("Returning Best Hole: " + bestHole + " - " + name + "," + bestIdx);
+  console.log("Returning Best Hole: " + bestHole + " - " + name + "," + bestIdx);
   return bestHole;
 }

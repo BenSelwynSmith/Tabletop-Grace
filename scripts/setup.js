@@ -43,6 +43,9 @@ function indicatorDisplay(b) {
     var c = document.getElementById('overlay-canvas');
     if (!indListener) {
       desaturator.addEventListener("click",function() { indicatorDisplay(0); });
+      desaturator.addEventListener("touchstart",function(evt) { evt.stopPropagation(); });
+      desaturator.addEventListener("touchmove",function(evt) { evt.stopPropagation(); });
+      desaturator.addEventListener("touchend",function(evt) { evt.stopPropagation(); evt.preventDefault(); indicatorDisplay(0); });
       indListener = 1;
     }
     var ctx = c.getContext('2d');

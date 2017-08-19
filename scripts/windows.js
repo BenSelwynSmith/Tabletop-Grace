@@ -9,21 +9,22 @@ var depth = 5;
 var scaled = 0;
 var expanded = 0;
 var moved = 0;
+var markerWidth = 30;
+var markerHeight = 15;
 
-/* function createWindow() {
-  var iframe = document.createElement('iframe');
-  iframe.setAttribute('src', window.location.pathname);
-  document.body.appendChild(iframe);
-  iframe.style.top = "30px";
-  iframe.style.left = "30px";
-  iframe.rot = 0;
+//Width of Menu
+var mw = 125;   //Half
+var mw2 = 250;
+//Height of Menu
+var mh = 40;    //Half
+var mh2 = 80;
 
-} */
+var svgX = 100;
+var svgY = 200;
+var win1 = 'a';
+var win2 = 'a';
 
-function runTest() {
-  addBlockWindow(null, 0);
-  addOutputWindow();
-}
+var windowarea;
 
 function removeWindows() {
   for (var i = 0; i < windows.length; i++) {
@@ -33,33 +34,32 @@ function removeWindows() {
   windowCount = 0;
 }
 
-function testSetup(i,reset) {
-  if (reset == 1) {
-    removeWindows();
-  }
-  if (windowCount == 0) {
-    if (i == 2) {
-      addBlockWindow(null,0);
-      addBlockWindow(null,0);
-      windows[0].style.left = "0%";
-      windows[0].style.top = "0%";
-      windows[0].style.width = "50%";
-      windows[0].style.height = "100%";
-      windows[1].style.left = "50%";
-      windows[1].style.top = "0%";
-      windows[1].style.width = "50%";
-      windows[1].style.height = "100%";
-    } else if (i == 1) {
-      addBlockWindow(null,0);
-      windows[0].style.left = "0%";
-      windows[0].style.top = "0%";
-      windows[0].style.width = "100%";
-      windows[0].style.height = "100%";
+function testSetup(i) {  
+  if (i == 1) {
+    for (var a = 1; a < 4; a++) {
+      windows[a].style.display = "none";
     }
+    windows[0].style.display = "";
+    windows[0].style.left = "2.5%";
+    windows[0].style.top = "2.5%";
+    windows[0].style.width = "95%";
+    windows[0].style.height = "95%";    
+  }
+  if (i == 2) {
+    for (var a = 2; a < 4; a++) {
+      windows[a].style.display = "none";
+    }    
+    for (var a = 0; a < 2; a++) {
+      windows[a].style.display = "";            
+      windows[a].style.top = "2.5%";
+      windows[a].style.width = "45%";
+      windows[a].style.height = "95%";    
+    }    
+    windows[0].style.left = "2.5%";
+    windows[1].style.left = "50%";
+    windows[1].style.transform = "";
   }
 }
-
-
 
 function testScaleWindow(s) {
   scaleWindow(s,windows[0]);
@@ -101,6 +101,9 @@ function bringToFront(t) {
       }
       tmp[i].style.zIndex = tmp[i].depth;
     }
+    return false;
+  } else {
+    return true;
   }
 }
 
@@ -110,7 +113,7 @@ function checkExpandOutput() {
   }
 }
 
-function expandOutput() {  
+function expandOutput() {
   var c = document.getElementById("codearea");
   var o = document.getElementById("outputarea");
   var b = document.getElementById("expand-button");
@@ -127,18 +130,27 @@ function expandOutput() {
   }
 }
 
-function clearCode() {
-  tiles = [];
+function clearCode(b) {
+  // tiles = [];
+  // for (var i in tiles) {
+    // if (i.nodeType == 1) {
+      // tiles
+    // }
+  // }
+  for (var i = tiles.length; i--; ) {
+    tiles[i].remove();
+  }
   var children = codearea.children;
   console.log(children.length);
   for (var i = 0; i < codearea.children.length; i++) {
-    if (children[i].id != "desaturator") {
-      // console.log("Removed: " + codearea.removeChild(children[i]));
+    if (children[i].id != "desaturator" && children[i].className != "osk") {
+      codearea.removeChild(children[i]);
       i--;
     }
   }
-  // console.log(children.length);
-  generateCode();
+  if (!b) {
+    generateCode();
+  }
 }
 
 function clearOutput() {
@@ -153,13 +165,13 @@ function clearOutput() {
 function moveWindow(x,y) {
   var f = window.frameElement;
   var l,t;
-  if (!moved) {      
+  if (!moved) {
     l = f.offsetLeft;
     t = f.offsetTop;
     moved = 1;
-  } else {    
+  } else {
     l = parseFloat(f.style.left);
-    t = parseFloat(f.style.top);    
+    t = parseFloat(f.style.top);
   }
   f.style.left = l + x + "px";
   f.style.top = t + y + "px";
@@ -207,25 +219,22 @@ function rotateWindow(s,t) {
     }
     var r = f.rot + s;
     f.style.transform = "rotate(" + r + "deg)";
-    while (r > 360) {
-      r -= 360;
-    }
-    while (r < -360) {
-      r += 360;
-    }
-    // console.log("R:" + f.rot + "," + r);
-    f.rot = r;
+    console.log("R:" + f.rot + "," + r);
+    f.rot = r % 360;
   }
 }
 
 
 
-function addBlockWindow(event, id) {
+
+function addBlockWindow(id) {
+  
   var w = 1920/1080;
   var h = 1080/1920;
   if (windowCount < windowMax) {
     var iframe = document.createElement('iframe');
     iframe.setAttribute('src', "code.html");
+    // var iframe = document.getElementById("w" + id);    
     document.body.appendChild(iframe);
     if (id == 0 || id == 3) {
       iframe.style.top = "10%";
@@ -234,6 +243,8 @@ function addBlockWindow(event, id) {
       iframe.style.height = "80%";
       iframe.rot = 0;
       if (id == 3) {
+        iframe.style.left = "45%";
+        iframe.style.width = "50%";
         iframe.style.transform = "rotate(180deg)";
         iframe.rot = 180;
       }
@@ -250,8 +261,8 @@ function addBlockWindow(event, id) {
         iframe.style.transform = "rotate(-90deg)";
         iframe.rot = -90;
       }
-
     }
+    // iframe.style.position = "fixed";
     iframe.idx = windowCount;
     windows[windowCount] = iframe;
     iframe.depth = depth + windowCount;
@@ -295,19 +306,194 @@ function closeWindowMenu(id) {
   windowMenu[id] = null;
 }
 
-//Width of Menu
-var mw = 125;   //Half
-var mw2 = 250;
-//Height of Menu
-var mh = 40;    //Half
-var mh2 = 80;
+function showWindowMenu2(event,x,y) {
+  console.log(event.target);
+  var target = event.target;
+  while (target.tagName != "svg") {
+      target = target.parentNode;
+  }
+  var x = x | event.clientX ;
+  var y = y | event.clientY;
+  
+  var id = parseInt(target.getAttribute("id").slice(-1));
+  console.log("SWM2: " + x + ", " + y + ", " + id);
+  var svg0 = document.getElementById('window_svg');
+  var svg = svg0.cloneNode(true);
+  svg.removeAttribute('id');
+  // svg.style.top = ((windowarea.scrollTop + y) - svg.getAttribute("height") * .5) + "px";
+  // svg.style.left = ((x) - svg.getAttribute("width") * .5) + 'px';
+  svg.style.display = "";
+  svg.xPoint = x;
+  svg.yPoint = y;
+  svg.setAttribute("class","piemenu");
+  svg0.parentNode.appendChild(svg);
+  svg.setAttribute("ts", Date.now());
+  createWindowMenu(svg,id);
+
+  var w = window.innerWidth;
+  var h = window.innerHeight;
+  var sw = 200;
+  var sw2 = 100;
+  var sh = 200;
+  var sh2 = 100;
+  var wh = h/w;
+  var min = 20;
+  // console.log("sw2: " + sw2);
+  console.log("wh: " + wh);
+
+  if (id == 0 || id == 3) {
+    var l = Math.min(w-sw-min,Math.max(min,x - sw2));
+    svg.style.left = l + "px";
+    if (id == 0) {
+      svg.style.bottom = "10px";
+    } else if (id == 3) {
+      // svg.style.left = '45%';
+      // svg.style.width = '50%';
+      svg.style.top = "10px";
+      svg.style.transform = "rotate(180deg)";
+    }
+  }
+
+  if (id == 1 || id == 2) {
+    var t = Math.min(h-sh-min,Math.max(min,y - sh2));
+    svg.style.top = t + "px";
+    if (id == 1) {
+      svg.style.left = "10px";
+      svg.style.transform = "rotate(90deg)";
+    } else if (id == 2) {
+      svg.style.right = "10px";
+      svg.style.transform = "rotate(-90deg)";
+    }
+  }
+
+}
+
+function windowMenuClick(idx,rid) {
+  console.log("Idx: " + idx + ", rid: " + rid);
+
+  if (windows[idx]) {
+    if (windows[idx].style.display == "none") {
+      windows[idx].style.display = "";
+      bringToFront(windows[idx]);
+    } else {
+      if (bringToFront(windows[idx])) {
+        //Already at front
+        windows[idx].style.display = "none";
+      }
+    }
+  } else {
+    //Create window
+  }
+}
+
+function createWindowMenu(svg,rid) {
+  //Create base pie
+  var pieces = 4;
+  var max = 180;
+  var start = -90;
+  var seg = max/pieces;
+  for (var i = 0; i < pieces; i++) {
+    createPieSegment(svgX,svgY,100,50,start,seg,svg,i,-3,i+1,rid);
+    start += seg;
+  }
+
+  //Path for Text
+  var p1 = [50,200];
+  var p2 = [150,200];
+  var r = [50,50];
+  var ang = 180;
+
+  var data =  "M " + p1[0] + " " + p1[1] + " ";
+  data += "A " + r[0] + " " + r[1] + " " + ang + " 0 1 " + p2[0] + " " + p2[1] + " ";
+
+  var mypath2 = document.createElementNS("http://www.w3.org/2000/svg","path");
+  mypath2.setAttributeNS(null, "id", "path" + "w" + win1 + win2);
+  mypath2.setAttributeNS(null, "d", data);
+  mypath2.setAttributeNS(null,"fill", "none");
+  mypath2.setAttributeNS(null,"stroke", "none");
+  svg.appendChild(mypath2);
+
+  //Text - Block Window
+  var text1 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  text1.setAttributeNS(null, "fill", "black");
+  text1.setAttributeNS(null,"font-size","15px");
+  text1.setAttributeNS(null, "dominant-baseline", "hanging");
+  var textpath = document.createElementNS("http://www.w3.org/2000/svg","textPath");
+  textpath.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", "#path" + "w" + win1 + win2);
+  textpath.setAttribute("startOffset","50%");
+  textpath.setAttribute("text-anchor","middle");
+  var txtElem = document.createTextNode("Block Windows");
+  text1.setAttribute("pointer-events", "none");
+  textpath.appendChild(txtElem);
+  text1.appendChild(textpath);
+  svg.appendChild(text1);
+
+  //Cancel Button - BG
+  var newElement = document.createElementNS("http://www.w3.org/2000/svg", 'circle'); //Create a path in SVG's namespace
+  newElement.setAttribute("cx", 100);
+  newElement.setAttribute("cy", 200);
+  newElement.setAttribute("r", 30);
+  newElement.style.fill = "black";
+  newElement.style.fillOpacity = "0.9";
+  svg.appendChild(newElement);
+  // newElement.addEventListener("click", function(event){ closePieMenu(event); });
+  newElement.addEventListener("touchend", function(event) { closePieMenu(event); });
+  newElement.style.pointerEvents = "all";
+
+  //Line LR
+  newElement = document.createElementNS("http://www.w3.org/2000/svg", 'line'); //Create a path in SVG's namespace
+  newElement.setAttribute("x1", 90);
+  newElement.setAttribute("y1", 198);
+  newElement.setAttribute("x2", 110);
+  newElement.setAttribute("y2", 178);
+  newElement.style.stroke = "red";
+  newElement.style.strokeWidth = 5;
+  newElement.style.strokeOpacity = .5;
+  svg.appendChild(newElement);
+  // newElement.addEventListener("click", function(event){ closePieMenu(event); });
+  newElement.addEventListener("touchend", function(event) { closePieMenu(event); });
+  newElement.style.pointerEvents = "all";
+
+  //Line RL
+  newElement = document.createElementNS("http://www.w3.org/2000/svg", 'line'); //Create a path in SVG's namespace
+  newElement.setAttribute("x1", 110);
+  newElement.setAttribute("y1", 198);
+  newElement.setAttribute("x2", 90);
+  newElement.setAttribute("y2", 178);
+  newElement.style.stroke = "red";
+  newElement.style.strokeWidth = 5;
+  newElement.style.strokeOpacity = .5;
+  svg.appendChild(newElement);
+  // newElement.addEventListener("click", function(event){ closePieMenu(event); });
+  newElement.addEventListener("touchend", function(event) { closePieMenu(event); });
+  newElement.style.pointerEvents = "all";
+
+
+
+
+
+  //Text pathing counter
+  if (win2 == "z") {
+    win2 = "A";
+  } else if (win2 == "Z") {
+    if (win1 == "z") {
+      win1 = "A";
+      win2 = "a";
+    } else if (win1 == "Z") {
+      win1 = "a";
+      win2 = "a";
+    } else {
+      win1 = nextChar(win1);
+      win2 = "a";
+    }
+  } else {
+    win2 = nextChar(win2);
+  }
+}
+
+
 
 function showWindowMenu(id,x,y) {
-// function showWindowMenu(event) {
-  //#Remove
-  // addBlockWindow(null,0);
-  // if (true) { return; }
-
   // var target = event.target;
   //0 Bottom: bottom: 50px, left: 50%, margin-left: -125px
   //1 Left: top: 50%, margin-top: -5px, left: -70px, transform: rotate(90deg)
@@ -317,9 +503,6 @@ function showWindowMenu(id,x,y) {
   var m = document.createElement("div");
   m.className = "window_menu";
   var id = parseInt(target.getAttribute('id').slice(-1));
-  // if (windowMenu[id]) {
-    // return closeWindowMenu(id);
-  // }
   var w = window.innerWidth;
   var h = window.innerHeight;
   console.log(w + "," + h);
@@ -365,14 +548,14 @@ function showWindowMenu(id,x,y) {
   var txt = document.createTextNode("Add Block Window");
   div.appendChild(txt);
   m.appendChild(div);
-  div.addEventListener("click", function(event) { addBlockWindow(event,id); closeWindowMenu(id);});
+  div.addEventListener("click", function(event) { addBlockWindow(id); closeWindowMenu(id);});
 
   div = document.createElement("div");
   div.className = "window_menu_option";
   txt = document.createTextNode("Add Output Window");
   div.appendChild(txt);
   m.appendChild(div);
-  div.addEventListener("click", function(event) { addOutputWindow(event,id); closeWindowMenu(id);});
+  div.addEventListener("click", function(event) { addOutputWindow(id); closeWindowMenu(id);});
 
   //Add touch events here: #TODO
 
@@ -383,8 +566,7 @@ function showWindowMenu(id,x,y) {
 }
 
 
-var wW = 30;
-var wH = 30;
+
 
 function createWidget() {
   var vars = document.getElementsByClassName("vardec");
@@ -406,6 +588,49 @@ function createWidget3() {
   for (var i = 0; i < vars.length; i++) {
     var txt = document.createTextNode("   ");
     vars[i].appendChild(txt);
+  }
+}
+
+function addPointer(tile) {
+  var marker = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  marker.setAttribute("width", markerWidth);
+  marker.setAttribute("height", markerHeight);
+  tile.appendChild(marker);
+  marker.style.position = "absolute";
+  marker.style.left = "calc(50% - 15px)";
+  marker.style.top = "-10px";
+
+  var newElement = document.createElementNS("http://www.w3.org/2000/svg", 'polygon'); //Create a path in SVG's namespace
+  newElement.setAttribute("points", "0,10 15,0 30 10");
+  newElement.style.fill = "gold";
+  newElement.style.fillOpacity = "1";
+  marker.appendChild(newElement);
+
+  var newElement2 = document.createElementNS("http://www.w3.org/2000/svg", 'polygon'); //Create a path in SVG's namespace
+  newElement2.setAttribute("points", "0,10 15,0 30 10");
+  newElement2.style.stroke = "goldenrod";
+  newElement2.style.fill = "none";
+  marker.appendChild(newElement2);
+  var anim = document.createElementNS("http://www.w3.org/2000/svg", 'animate');
+  anim.setAttribute("attributeName", "fill-opacity");
+  anim.setAttribute("begin", "0s");
+  anim.setAttribute("dur", "1.5s");
+  anim.setAttribute("from", 0.2);
+  anim.setAttribute("to", 1);
+  anim.setAttribute("repeatCount", "indefinite");
+
+
+  tile.marker = marker;
+  tile.oldBorder = tile.style.borderTop;
+  tile.style.borderTop = "gold solid 2px";
+}
+
+function removePointer(tile) {
+  if (tile.marker) {
+    tile.removeChild(tile.marker);
+    tile.style.borderTop = tile.oldBorder;
+    tile.oldBorder = null;
+    tile.marker = null;
   }
 }
 

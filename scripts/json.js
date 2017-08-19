@@ -535,8 +535,9 @@ function createChunkFromJSON(chunk) {
 }
 function loadJSON(str) {
     var bin = document.getElementById('bin');
-    while (codearea.hasChildNodes())
-        codearea.removeChild(codearea.lastChild);
+    // while (codearea.hasChildNodes())
+        // codearea.removeChild(codearea.lastChild);
+    clearCode(1);
     // codearea.appendChild(bin);
     codearea.appendChild(desaturator);
     var obj = JSON.parse(str);
@@ -629,6 +630,7 @@ function loadSample(k) {
                 checkpointSave();
                 history.replaceState(generateJSObject(), "", "#sample=" + k);
                 loading.parentNode.removeChild(loading);
+                addTileTouch();
             }, 50);
         }
         loadingBody.innerHTML = 'Loading sample "' + n + '": compiling. <br />This may take a while.';
@@ -639,6 +641,7 @@ function loadSample(k) {
         alert("Failed to retrieve sample.");
         loading.parentNode.removeChild(loading);
     }
+
 }
 function ensureDataset(n) {
     if (!n.dataset)

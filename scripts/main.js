@@ -69,7 +69,12 @@ function isValidVariableName(varname) {
     return true;
 }
 function popupVarMenu(ev) {
+    console.log("Popup: " + ev.target + ", " + ev.target.classList);
     var el = ev.target;
+    if (!el.classList.contains("var-name")) {
+        el = el.children[0];
+    }
+    
     ev.stopImmediatePropagation();
     var menus = codearea.getElementsByClassName('popup-menu');
     if (menus.length) {
