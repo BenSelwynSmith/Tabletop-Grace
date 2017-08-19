@@ -26,92 +26,64 @@ var longPress = 400;
 
 var aceContent;
 
-var interactMode = 0;
-var moveCounter = 0;
-
 var toDeg = (180 / Math.PI);
 var toRad = Math.PI / 180;
-var lastV;
-var lastAng;
-var lastMag;
-var minAngle = 5;
-var angleScale = 0.2;
-var minDist = 8;
-var distScale = 0.5;
 
 var sameDirThresh = 10 * toRad //10deg
 var rotateMinThresh = 3 * toRad //3deg
 var moveThresh = 1;
 var lastUpdate;
 
-var lastCounter;
-var lastType;
-var lastThresh = 5;
-
-var tileZIndex = 5;
-var tileLastZIndex = tileZIndex;
+var tileZIndex2 = [5,5,5,5];
+var tileLastZIndex2 = [5,5,5,5];
 var tileMaxZIndex = 1000;
 
 var keyboards = [];
 
 
-function enableTouch() {
-  //#TODO ?? Replace with prevent default on pie menu including all segments
+function addTouch(i) {  
   // window.addEventListener('contextmenu', function(ev) {
     // ev.preventDefault();
-  // });
-  if (window.frameElement) {
-    //This is running in an iframe, this is intended behaviour so don't load scripts otherwise
-    aceContent = document.getElementsByClassName("ace_content")[0];
-    addPieTouch();
-    addTileTouch();
-    // keyboards[0] = Oskar();
-    // keyboards[1] = Oskar(1);
-    // for (var i = 0; i < keyboards.length; i++) {
-      // keyboards[i].style.position = "absolute";
-    // }
-    // hideKeyboard();
-
-    // console.log(keyboard);
-    // keyboard.appendTo(document.getElementById("stdout_text"));
-  }
+  // });  
+  // aceContent = document.getElementsByClassName("ace_content")[0];
+  addPieTouch(i);
+  addTileTouch(i);
 }
 
-
-
-function setTilesZIndex() {
-  //Give all tiles a zindex
-  for (var i = 0; i < tiles.length; i++) {
-    tiles[i].style.zIndex = tileZIndex;
+function setTilesZIndex(id) {
+  //Give all tiles a zindex  
+  for (var i = 0; i < tiles2[id].length; i++) {
+    tiles2[id][i].style.zIndex = tileZIndex2[id];
   }
 }
 
 function tileBringToFront(tile) {
-  if (tile.style.zIndex == tileLastZIndex && tileLastZIndex != tileZIndex) { return; }
-  tileLastZIndex++;
-  tile.style.zIndex = tileLastZIndex;
-  if (tileLastZIndex > tileMaxZIndex) {
-    setTilesZIndex();
-    tileLastZIndex = tileZIndex + 1;
-    tile.style.zIndex = tileLastZIndex;
+  var id = tile.windex;
+  if (tile.style.zIndex == tileLastZIndex2[id] && tileLastZIndex2[id] != tileZIndex2[id]) { return; }
+  tileLastZIndex2[id]++;
+  tile.style.zIndex = tileLastZIndex2[id];
+  if (tileLastZIndex2[id] > tileMaxZIndex) {
+    setTilesZIndex(id);
+    tileLastZIndex2[id] = tileZIndex2[id] + 1;
+    tile.style.zIndex = tileLastZIndex2[id];
   }
 }
 
-function reset_page() {
+function resetPage() {
   window.location = window.location.pathname;
 }
 
-function addPieTouch() {
-  codearea.addEventListener('touchstart', pieTouchStart);
-  codearea.addEventListener('touchmove', pieTouchMove);
-  codearea.addEventListener('touchend', pieTouchEnd);
-  aceContent.addEventListener('touchstart', pieTouchStart);
-  aceContent.addEventListener('touchmove', pieTouchMove);
-  aceContent.addEventListener('touchend', pieTouchEnd);
+function addPieTouch(i) {  
+  codearea2[i].addEventListener('touchstart', pieTouchStart);
+  codearea2[i].addEventListener('touchmove', pieTouchMove);
+  codearea2[i].addEventListener('touchend', pieTouchEnd);
+  // aceContent.addEventListener('touchstart', pieTouchStart);
+  // aceContent.addEventListener('touchmove', pieTouchMove);
+  // aceContent.addEventListener('touchend', pieTouchEnd);
   // codearea.addEventListener('click', function(event) {
     // showPieMenu(event.pageX, event.pageY);
   // });
-  codearea.t1 = codearea.t2 = null;
+  codearea2[i].t1 = codearea2[i].t2 = null;
 }
 
 
@@ -140,16 +112,14 @@ function addWMenuTouch() {
   blank.addEventListener('touchend', function(event) { event.preventDefault(); });
 
 
-  for (var i = 0; i < 4; i++) {
+  for (var i = 0; i < 4; i++) {    
     var id = "svg_" + i;
     var elem = document.getElementById(id);
-    elem.addEventListener('touchstart', function() { event.preventDefault(); });
-    elem.addEventListener('touchmove', function() { event.preventDefault(); });
+    elem.addEventListener('touchstart', function(event) { event.preventDefault(); });
+    elem.addEventListener('touchmove', function(event) { event.preventDefault(); });
     elem.addEventListener('touchend', function(event) { wMenuEnd(event); });
-    elem.addEventListener('click', function(event) { showWindowMenu2(event); event.preventDefault(); });
+    // elem.addEventListener('click', function(event) { showWindowMenu2(event); event.preventDefault(); });
     elem.style.pointerEvents = "all";
-    addBlockWindow(i);
-    windows[i].style.display = "none";
   }
 }
 
@@ -622,17 +592,18 @@ function addTileTouchToTile(tile) {
     tile.addEventListener('touchstart', tileTouchStart);
     tile.addEventListener('touchmove', tileTouchMove);
     tile.addEventListener('touchend', tileTouchEnd);
-    setTilesZIndex();
+    setTilesZIndex(tile.windex);
 }
 
-function addTileTouch() {
+function addTileTouch(id) {
   //Adds touch listeners for touch start, move and end
-  var tiles = codearea.getElementsByClassName('tile');
+  var tiles = codearea2[id].getElementsByClassName('tile');
   for (var i = 0; i < tiles.length; i++) {
+    tiles[i].windex = id;
     addTileTouchToTile(tiles[i]);
   }
-  console.log("Added touch to tiles " + tiles.length);
-  holes = codearea.getElementsByClassName("hole");
+  console.log(id + " Added touch to tiles " + tiles.length);
+  holes2[id] = codearea2[id].getElementsByClassName("hole");
 }
 
 function tileTouchStart(event) {
@@ -789,13 +760,9 @@ function tileTouchMove(event) {
       //Continue Drag
       var top = (event.changedTouches[i].clientY - touches[id].y);
       var left = (event.changedTouches[i].clientX - touches[id].x);
-      if (interactMode == 0) {
-        target.style.top = top + 'px';
-        target.style.left = left + 'px';
-      } else if (interactMode == 1) {
-        target.parentNode.style.top = top + 'px';
-        target.parentNode.style.left = left + 'px';
-      }
+      target.style.top = top + 'px';
+      target.style.left = left + 'px';
+      
 
       top += codearea.scrollTop;
       left += codearea.scrollLeft;

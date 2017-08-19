@@ -1,22 +1,18 @@
 "use strict"
-var holes = document.getElementsByClassName('hole');
-var codearea = document.getElementById('codearea');
 var toolbox = document.getElementById('toolbox');
-var tiles = codearea.getElementsByClassName('tile');
 var supportsPointerEvents = false;
 var blockIndent = 0;
 var chunkLine;
-
-
+var canvasHack;
 
 function generateHash(obj) {
     return '#' + btoa(encodeURIComponent(JSON.stringify(obj)));
 }
-function checkpointSave() {
-    var obj = generateJSObject();
+function checkpointSave(id) {
+    var obj = generateJSObject(id);
     var progHash = generateHash(obj);
-    if (navigator.userAgent.indexOf("Trident") == -1 && navigator.userAgent.indexOf("MSIE") == -1)
-        history.pushState(obj, "", progHash);
+    // if (navigator.userAgent.indexOf("Trident") == -1 && navigator.userAgent.indexOf("MSIE") == -1)
+        // history.pushState(obj, "", progHash);
 }
 function loadSave() {
     if (!localStorage.getItem("autosave-json")) {
@@ -25,38 +21,18 @@ function loadSave() {
     }
     var obj = loadJSON(localStorage.getItem("autosave-json"));
     var progHash = generateHash(obj);
-    history.pushState(JSON.parse(localStorage.getItem("autosave-json")), "", progHash);
+    // history.pushState(JSON.parse(localStorage.getItem("autosave-json")), "", progHash);
 }
 
-function changeDialect() {
+function changeDialect(id) {
     var tb = document.getElementById('toolbox');
     var dialectMethods = tb.getElementsByClassName("dialect-method");
     while (dialectMethods.length) {
         tb.removeChild(dialectMethods[0]);
     }
-    addDialectMethods(document.getElementById('dialect').value);
-    var cb = document.getElementById('category-bar');
-    while (cb.childNodes.length > 0)
-        cb.removeChild(cb.lastChild);
-    var cats = {};
-    for (var i=0; i<tb.childNodes.length; i++) {
-        if (!tb.childNodes[i].dataset)
-            continue;
-        var cat = tb.childNodes[i].dataset.category;
-        if (cats[cat])
-            continue;
-        cats[cat] = true;
-        var but = document.createElement("input");
-        but.type = "button";
-        but.value = cat;
-        but.addEventListener("click", function(ev) {
-            switchPane(this.value);
-        });
-        cb.appendChild(but);
-    }
-    switchPane("Variables");
-    generateCode();
-    checkpointSave();
+    addDialectMethods(document.getElementById('dialect').value);        
+    generateCode(id);
+    checkpointSave(id);
 }
 function isValidVariableName(varname) {
     if (varname == "")
@@ -300,14 +276,14 @@ function attachTileBehaviour(n) {
                 el.title = "Add argument";
             }); */
 //}
-function blinkCoddleInputs(el) {
+/* function blinkCoddleInputs(el) {
     // Chrome has unusual ideas of what input sizes mean
     var mod = 8;
     if (!el.value) { 
         mod = 20;
     }
     el.style.width = (el.size * mod) + 'px';
-}
+} */
 function attachInputEvents(el) {
     el.addEventListener('mousedown', function(ev) {
         ev.stopPropagation();
@@ -427,17 +403,42 @@ function attachToolboxBehaviour(n) {
         dragstart.call(cl, ev);
     });
 }
-function go() {
-    if (!codearea.classList.contains('shrink')) {
-        if (highlightTileErrors())
-            return;
+
+function makeGetCodeFunc(id) {
+  return function() { getCodeFunc(id) };
+}
+
+function getCodeFunc(id) {
+  if (codearea2[id].classList.contains("shrink"))
+    return editor2[id].getValue();
+  return document.getElementById('gracecode' + id).value;
+}
+
+function resizeCanvas() {
+  var canvas = document.getElementById('standard-canvas');
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;  
+}
+
+function go(id) {
+    if (!codearea2[id].classList.contains('shrink')) {      
+      if (highlightTileErrors(null,id))
+        return;
     }
-    generateCode();
+    generateCode(id);
     document.getElementById('stderr_txt').value = "";
     //document.getElementById('stdout_txt').value = "";
 
+    if (!canvasHack) {
+      document.getElementById('standard-canvas').getContext('2d').fillRect = document.getElementById('standard-canvas').getContext('2d').clearRect;
+      canvasHack = 1;
+    }
+    
+    resizeCanvas();
+    
     minigrace.modname = "main";
-    minigrace.compilerun(getCode());
+    // var getCode = makeGetCodeFunc(id);
+    console.log("Go(" + id + "): " + minigrace.compilerun(getCode[id]()));
 }
 var theBrowser = 'unknown';
 if (navigator.userAgent.search('Chrome') != -1) {

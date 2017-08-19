@@ -23,8 +23,16 @@ var currentView = 0;
 
 var tileList = [];
 
-function closeAllMenus() {
-  var m = document.getElementsByClassName("piemenu");
+function closeAllMenus(id,scope) {
+  var m;
+  var target = "piemenu";
+  if (scope) { target = scope; }
+  if (id >= 0 && id < 4) {
+    m = windows[id].getElementsByClassName(target);
+  } else {
+    m = document.getElementsByClassName(target);
+  }
+
   for (var i = 0; i < m.length;) {
     m[i].parentNode.removeChild(m[i]);
   }
@@ -131,7 +139,7 @@ function createTileMenu(svg) {
   newElement.setAttribute("cy", y1);
   newElement.setAttribute("r", r);
   newElement.style.fill = "white";
-  
+
   newElement.addEventListener("click", function(event) { deleteTile(event,svg.tileSrc); });
   svg.appendChild(newElement);
   newElement.style.pointerEvents = "all";
@@ -156,7 +164,7 @@ function createTileMenu(svg) {
   newElement.setAttribute("cx", xMid);
   newElement.setAttribute("cy", y2);
   newElement.setAttribute("r", r);
-  newElement.style.fill = "white";  
+  newElement.style.fill = "white";
   newElement.addEventListener("click", function(event) { cloneTile(event,svg.tileSrc); });
   svg.appendChild(newElement);
   newElement.style.pointerEvents = "all";
@@ -263,6 +271,7 @@ function cloneTile (event, tile) {
   }
 
   var newTile = tmp.cloneNode(true);
+  newTile.windex = tmp.windex;
   addTileTouchToTile(newTile);
   newTile.prev = false;
   newTile.next = false;
@@ -274,20 +283,21 @@ function cloneTile (event, tile) {
   }
   newTile.style.left = tile.style.left + 5;
   newTile.style.top = tile.style.top + 5;
-  codearea.appendChild(newTile);
-  updateTileIndicator();
-  generateCode();
-  reflow();
-  checkpointSave();
-  clearPopouts();
+  codearea2[tile.windex].appendChild(newTile);
+  updateTileIndicator(tile.windex);
+  generateCode(tile.windex);
+  reflow(tile.windex);
+  checkpointSave(tile.windex);
+  clearPopouts(tile.windex);
   svg.parentNode.removeChild(svg);
-  document.getElementById('overlay-canvas').style.display = 'none';
+  overlays2[windex].style.display = 'none';
 }
 
 function deleteTile (event, tile) {
   var svg = event.target.parentNode;
   var tmp = tile;
-  console.log("Delete Tile: " + tile.classList + " - " + event.target.tagName);
+  var windex = tile.windex;
+  // console.log("Delete Tile: " + tile.classList + " - " + event.target.tagName);
   while (!tmp.classList.contains('tile')) {
     tmp = tmp.parentNode;
   }
@@ -302,44 +312,40 @@ function deleteTile (event, tile) {
   //   tmp.parentNode.removeChild(tmp);
   //   tmp = tmp.next;
   // }
-  updateTileIndicator();
-  generateCode();
-  reflow();
-  checkpointSave();
-  clearPopouts();
-  document.getElementById('overlay-canvas').style.display = 'none';
+  updateTileIndicator(windex);
+  generateCode(windex);
+  reflow(windex);
+  checkpointSave(windex);
+  clearPopouts(windex);
+  overlays2[windex].style.display = 'none';
   svg.parentNode.removeChild(svg);
 }
 
-function showPieMenu(x,y) {
-  var svg0 = document.getElementById('pie_svg');
+function cloneSVG(target,x,y,id,cl) {
+  var svg0 = document.getElementById(target);
   var svg = svg0.cloneNode(true);
   svg.removeAttribute('id');
-  svg.style.top = ((codearea.scrollTop + y) - svg.getAttribute("height") * .5) + "px";
-  svg.style.left = ((x) - svg.getAttribute("width") * .5) + 'px';
+  svg.setAttribute("class",cl);
+  svg.style.top = ((y) - svg.getAttribute("height") * .5) + "px";
+  svg.style.left = ((x) - svg.getAttribute("width") * .5) + "px"
+  svg.style.fontFamily = "none";
   svg.style.display = "";
   svg.xPoint = x;
   svg.yPoint = y;
-  svg.setAttribute("class","piemenu");
-  svg0.parentNode.appendChild(svg);
+  svg.windex = id;
+  windows[id].appendChild(svg);
   svg.setAttribute("ts", Date.now());
-  createPieMenu(svg);
+  return svg;
 }
 
-function showSecMenu(x,y) {
-  var svg0 = document.getElementById('sec_svg');
-  var svg = svg0.cloneNode(true);
-  svg.removeAttribute('id');
-  svg.style.top = ((codearea.scrollTop + y) - svg.getAttribute("height") * .5) + "px";
-  svg.style.left = ((x) - svg.getAttribute("width") * .5) + 'px';
-  svg.style.display = "";
-  svg.xPoint = x;
-  svg.yPoint = y;
-  svg.idx = -1;
-  svg.setAttribute("class","piemenu");
-  svg0.parentNode.appendChild(svg);
-  svg.setAttribute("ts", Date.now());
-  createSecondaryMenu(svg);
+function showPieMenu(x,y,id) {
+  if (id < 0 || id > 3) { return; }
+  createPieMenu(cloneSVG('pie_svg',x,y,id,"pie piemenu"));
+}
+
+function showSecMenu(x,y,id) {
+  if (id < 0 || id > 3) { return; }
+  createSecondaryMenu(cloneSVG('sec_svg',x,y,id,"sec piemenu"));
 }
 
 //window.setTimeout(function () { iframe.style.left = l2 + 'px'; iframe.style.top = t2 + 'px'},5);
@@ -385,19 +391,31 @@ function closeTileMenu(event, svg) {
 
 function createPieMenu(svg) {
   //Find all tiles and create pie menu from them
-  var tmp = toolbox.getElementsByClassName('tile');  
-  var cats = [];  
+  console.log("Create pie menu: " + svg);
+  var tmp = toolbox.getElementsByClassName('tile');
+  var cats = [];
+  var catTile = [];
+  var catCount = 0;
+  colours = [];
   for (var i in tmp) {
     if (tmp[i].nodeType == 1) {
-      var cat = tmp[i].getAttribute("data-category");      
+      var cat = tmp[i].getAttribute("data-category");
       if (!cats.includes(cat)) {
         cats.push(cat);
+        // colours[i] = tmp[i].style.background;
+        colours[catCount] = window.getComputedStyle(tmp[i]).backgroundColor;
+        if (catCount == 2) { colours[catCount] = "blue"; }
+        catCount++;
       }
     }
-  }    
-  
+  }
+
+
+
+
+
   var tiles = [];
-  for (var c in cats) {       
+  for (var c in cats) {
     for (var i in tmp) {
       if (tmp[i].nodeType != 1) { continue; }
       if (tmp[i].getAttribute("data-category") == cats[c]) {
@@ -405,20 +423,20 @@ function createPieMenu(svg) {
       }
     }
   }
-  
+
   var redo = false;
   if (!tileList || tileList.length == 0) {
     redo = true;
   }
-  
+
   var tileGroups = [];
-  for (var i = 0; i < tiles.length; i++) {    
-    var tileType = tiles[i].getAttribute("data-category");    
-    
+  for (var i = 0; i < tiles.length; i++) {
+    var tileType = tiles[i].getAttribute("data-category");
+
     if (redo) {
-      tileList.push(tiles[i]);    
+      tileList.push(tiles[i]);
     }
-    
+
     var b = -1;
     for (var j = 0; j < tileGroups.length; j++) {
       if (tileGroups[j].type == tileType) {
@@ -432,7 +450,7 @@ function createPieMenu(svg) {
       tileGroups.push({ type: tileType, count: 1, idx: i});
     }
   }
-  
+
   if (pie2 == "z") {
     pie2 = "A";
   } else if (pie2 == "Z") {
@@ -507,6 +525,7 @@ function createExtendSec(svg,idx,txtData,start) {
   if (seg * p > 180) {
     seg = 180/p;
   }
+  var windex = svg.windex;
 
   var left = start - seg * p *.5;
   // console.log("ext: " + txtData + "," + start + "," + seg + "," + left);
@@ -536,7 +555,12 @@ function createExtendSec(svg,idx,txtData,start) {
     newElement.setAttribute("d",data); //Set path's data
     newElement.style.stroke = "white";
     newElement.style.strokeWidth = "2px";
-    newElement.style.fill = "black";
+    if (idx == 6) {
+      newElement.style.fill = "red";
+    } else {
+      newElement.style.fill = "black";
+    }
+
     newElement.style.fillOpacity = "0.5";
     newElement.style.pointerEvents = "all";
 
@@ -575,7 +599,9 @@ function createExtendSec(svg,idx,txtData,start) {
     textpath.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", "#path" + sec1 + sec2 + "e" + idx + i);
     textpath.setAttribute("startOffset","50%");
     textpath.setAttribute("text-anchor","middle");
-    txtElem = document.createTextNode(txtData[i].text);
+    var txtD = txtData[i].text;
+    if (!txtD) { txtD = txtData[i]; }
+    txtElem = document.createTextNode(txtD);
     text1.setAttribute("pointer-events", "none");
     textpath.appendChild(txtElem);
     text1.appendChild(textpath);
@@ -588,9 +614,9 @@ function createExtendSec(svg,idx,txtData,start) {
         var d = document.getElementById("dialect");
         d.value = d.options[event.target.idx].value;
         curDialect = event.target.idx;
-        changeDialect();
+        changeDialect(windex);
         tileList = [];
-        closeAllMenus();
+        closeAllMenus(-1);
       });
       newElement.setAttribute("class","sec" + idx);
       text1.setAttribute("class","sec" + idx);
@@ -600,17 +626,26 @@ function createExtendSec(svg,idx,txtData,start) {
       if (i == curDialect) {
         newElement.style.fill = "gray";
       }
-
+    } else if (idx == 6) {
+      newElement.addEventListener("click", function(event) {
+        clearCode(0,windex);        
+      });
+      newElement.setAttribute("class","sec" + idx);
+      text1.setAttribute("class","sec" + idx);
+      newElement.style.display = "none";
+      text1.style.display = "none";
+      // newElement.setAttribute("fill", "red");
     } else if (idx == 5) {
       newElement.addEventListener("click", function(event) {
         var d = document.getElementById("samples");
-        d.value = d.options[event.target.idx].value;
-        curSample = event.target.idx;
-        closeAllMenus();
+        d.value = d.options[event.target.idx+1].value;
+        // curSample = event.target.idx;
+        closeAllMenus(windex);
         console.log("Loading: " + d.value);
-        loadSample(d.value);
+        loadSample(d.value,windex);
         // addTileTouch();
-        checkpointSave();
+        checkpointSave(windex);
+        // svg.sampleID = event.target.idx;
       });
       newElement.setAttribute("class","sec" + idx);
       text1.setAttribute("class","sec" + idx);
@@ -618,33 +653,37 @@ function createExtendSec(svg,idx,txtData,start) {
       newElement.style.display = "none";
       text1.style.display = "none";
 
-      if (i == curSample) {
-        newElement.style.fill = "gray";
-      }
+      // if (!svg.sampleID && i == 0) {
+        // newElement.style.fill = "gray";
+      // }
+      // if (svg.sampleID && i == svg.sampleID) {
+        // newElement.style.fill = "gray";
+      // }
 
     }
   }
 }
 
-function rotatePoint(cx, cy, a, px, py) {  
+function rotatePoint(cx, cy, a, px, py) {
   var s = Math.sin(a);
-  var c = Math.cos(a);  
+  var c = Math.cos(a);
   px -= cx;
   py -= cy;
   var xn = px * c - py * s;
-  var yn = px * s + py * c;  
+  var yn = px * s + py * c;
   px = xn + cx;
-  py = yn + cy;  
+  py = yn + cy;
   return [px,py];
 }
 
 function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
-  if (c != 2 && c != -2) {
+  if (c == 2) {
     // console.log(rx + "," + ry + "," + rad1 + "," + rad2 + "," + a1 + "," + a2 + "," + svg +
     // "," + idx + "," + c + "," + idx2 + "," + c2);
   }
   a1 = a1 % 360;
-  
+  var windex = svg.windex;
+
   var p1x = rx;
   var p1y = ry-rad2;
   var p2x = rx;
@@ -696,15 +735,11 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
   }
   newElement.style.fillOpacity = "0.5";
   newElement.style.pointerEvents = "all";
-  
-
-
-
 
   if (c) {
     //Draw the secondary menu text using SVG textPath
     var other = 0;
-    if (c != 2 && c != -2) { 
+    if (c != 2 && c != -2) {
       // console.log("A: " + a1 + "," + a2);
     }
     if (a1 >= 90 && a1 < 270) {
@@ -726,7 +761,7 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
     } else {
       pathName += pie1 + pie2 + idx + pieE1 + pieE2 + idx2;
     }
-    
+
     if (c != -3) {
       var mypath2 = document.createElementNS("http://www.w3.org/2000/svg","path");
       mypath2.setAttributeNS(null, "id", pathName);
@@ -743,13 +778,13 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
       } else {
         text1.setAttributeNS(null, "dominant-baseline", "ideographic");
       }
-      
+
 
       var textpath = document.createElementNS("http://www.w3.org/2000/svg","textPath");
       textpath.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", "#" + pathName);
       textpath.setAttribute("startOffset","50%");
       textpath.setAttribute("text-anchor","middle");
-      
+
       //Text
       var txtElem;
       if (c == 2 || c == -2 || c == -3) {
@@ -759,32 +794,32 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
         text1.style.display = "none";
         var tileText = tileList[idx2].getAttribute("desc");
         if (!tileText) {
-          tileText = (tileList[idx2].getElementsByTagName('span')[0]).innerText || "?";      
+          tileText = (tileList[idx2].getElementsByTagName('span')[0]).innerText || "?";
         }
         // tileText = tileText.replace(/\W/g, '');
         tileText = tileText.replace(/[(){}:=]/gi, '')
         tileText = tileText.toUpperCase();
         txtElem = document.createTextNode(tileText);
-        
+
       }
-    
+
       textpath.appendChild(txtElem);
       text1.appendChild(textpath);
     }
-  
-    
+
+
     //SecMenu Main Button operations
     if (c == 2) {
       //Save File (download)
       if (idx == 4) {
         //Needs a href
-        var dl = document.getElementById("downloadlink");
+        var dl = document.getElementById("downloadlink"+windex);
         var a = document.createElementNS("http://www.w3.org/2000/svg","a");
         a.setAttributeNS("http://www.w3.org/1999/xlink", "href", dl.getAttribute("href"));
         // a.setAttribute("href",dl.getAttribute("href"));
         a.setAttribute("download",dl.getAttribute("download"));
         a.appendChild(newElement);
-        a.setAttribute("class","downloadlink2");
+        a.setAttribute("class","downloadlink2"+windex);
         a.addEventListener("click", function() { expandSecMenu(svg,idx); });
         svg.appendChild(a);
       } else {
@@ -806,13 +841,14 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
       } else if (idx == 1) {
         //Run Code
         newElement.addEventListener("click", function() {
+          // console.log(windex);
           expandSecMenu(svg,idx);
-          updateTileIndicator();
-          if (errorTiles.length > 0) {
-            highlightTileErrors();
+          updateTileIndicator(windex);
+          if (errorTiles2[windex].length > 0) {
+            highlightTileErrors(null,id);
           } else {
             checkExpandOutput();
-            go();
+            go(windex);
           }
         });
       } else if (idx == 2) {
@@ -820,11 +856,11 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
         newElement.addEventListener("click", function() {
           expandSecMenu(svg,idx);
           if (!(document.getElementById("viewbutton").disabled)) {
-              toggleShrink();
-              if (currentView == 0) {
-                currentView = 1;
+              toggleShrink(windex);
+              if (svg.currentView == 0) {
+                svg.currentView = 1;
               } else {
-                currentView = 0;
+                svg.currentView = 0;
               }
               closeSecondaryMenu(svg)
           }
@@ -835,6 +871,9 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
       } else if (idx == 5) {
         //Expand menu - sample
         var txt = document.getElementById("samples").options;
+        txt = Array.from(txt);
+        txt = txt.slice(1,txt.length);
+        // console.log(txt);
         createExtendSec(svg,idx,txt,a1+a2*.5);
 
 
@@ -843,18 +882,19 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
         });
       } else if (idx == 6) {
         //Reset Code
-        newElement.addEventListener("click", function() { expandSecMenu(svg,idx); clearCode(); closeSecondaryMenu(svg) });
+        createExtendSec(svg,idx,["Confirm"],a1+a2*.5);
+        newElement.addEventListener("click", function() { expandSecMenu(svg,event.target.idx); });
       } else if (idx == 7) {
         //Reset Output
-        newElement.addEventListener("click", function() { expandSecMenu(svg,idx); clearOutput(); closeSecondaryMenu(svg) });
+        newElement.addEventListener("click", function() { expandSecMenu(svg,idx); clearOutput(windex); closeSecondaryMenu(svg) });
       } else if (idx == 8) {
         //View Errors
         newElement.setAttribute("class", "errorPie");
-        if (errorTiles == null) {
-          updateTileIndicator();
+        if (errorTiles2[windex] == null) {
+          updateTileIndicator(windex);
         }
         // console.log("Error: " + errorTiles.length);
-        if (errorTiles.length > 0) {
+        if (errorTiles2[windex].length > 0) {
           newElement.style.fill = "red";
         } else {
           newElement.style.fill = "green";
@@ -862,19 +902,19 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
 
         newElement.addEventListener("click", function() {
           expandSecMenu(svg,idx);
-          indicatorDisplay(errorTiles.length);
+          indicatorDisplay(errorTiles2[windex].length,windex);
           closeSecondaryMenu(svg);
         });
 
       }
     }
 
-    
+
     if (c != -3) {
       svg.appendChild(text1);
     }
-    
-    if (c == -3) {   
+
+    if (c == -3) {
       // newElement.addEventListener("click", function() { windowMenuClick(idx,c2); });
     newElement.addEventListener("touchend", function() { windowMenuClick(idx,c2); });
     }
@@ -897,7 +937,7 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
       textElement.setAttribute("y",xy[1]);
       textElement.setAttribute("text-anchor", "middle");
       textElement.setAttribute("dominant-baseline", "middle");
-      textElement.setAttribute("pointer-events", "none");      
+      textElement.setAttribute("pointer-events", "none");
       textElement.style.fontFamily = "entypo";
       if (c == -3) {
         textElement.style.fontSize = "30px";
@@ -918,16 +958,17 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
   if (c && c != 2 && c != -2 && c != -3) {
     //Pie Outer Segment
     newElement.setAttribute("class",c);
-    newElement.style.display = "none";    
+    newElement.style.display = "none";
     newElement.addEventListener("touchstart", function(event) { segmentDragStart(event); });
-    newElement.addEventListener("touchmove", function(event) { segmentDragMove(event) });
-    newElement.addEventListener("touchend", function(event) { segmentDragEnd(event) });
-    newElement.tileIdx = idx2;     
-  } else if (c != -3) {    
+    newElement.addEventListener("touchmove", function(event) { segmentDragMove(event); });
+    newElement.addEventListener("touchend", function(event) { segmentDragEnd(event); });
+    newElement.addEventListener('click', function(event) { pieExtendClick(tileList[event.target.tileIdx],event.target.parentNode,event); });
+    newElement.tileIdx = idx2;
+  } else if (c != -3) {
     newElement.setAttribute("idx", idx);
-    newElement.addEventListener("click", function(){ menuExtend(this.getAttribute("idx"),this); });    
+    newElement.addEventListener("click", function(){ menuExtend(this.getAttribute("idx"),this); });
   }
-  svg.appendChild(newElement);   
+  svg.appendChild(newElement);
 }
 
 function expandSecMenu(svg, idx) {
@@ -951,6 +992,17 @@ function expandSecMenu(svg, idx) {
         m[i].style.display = "";
       }
       svg.idx = 0;
+    } else {
+      svg.idx = -1;
+    }
+  } else if (idx == 6) {
+    if (svg.idx != 6) {
+        //Show confirm delete
+      var m = document.getElementsByClassName(txt);
+      for (var i = 0; i < m.length;i++) {
+        m[i].style.display = "";
+      }
+      svg.idx = 6;
     } else {
       svg.idx = -1;
     }
@@ -990,7 +1042,7 @@ function closeSecondaryMenu(svg) {
   // }
 }
 
-function createSecondaryMenu(svg) {
+function createSecondaryMenu(svg,id) {
   if (!svg) {
     svg = document.getElementById("pie_svg");
     svg.style.left = "0%";
@@ -1004,7 +1056,6 @@ function createSecondaryMenu(svg) {
   fixedFromCharCode(0x1F4E5),"\uE005","\u27F3","\uE730","\u26A0"];
   var x0 = 200;
   var y0 = 200;
-  // this.pieces = options.length;
   this.pieces = options.length;
   this.max = 360;
   this.start = -45;
@@ -1013,7 +1064,6 @@ function createSecondaryMenu(svg) {
   for (var i = 0; i < pieces; i++) {
     createPieSegment(x0,y0,120,50,start,seg,svg,i,2,options[i],oChars[i]);
     start += seg;
-
   }
 
   //For unique ids aa-ZZ
@@ -1035,58 +1085,7 @@ function createSecondaryMenu(svg) {
   }
 
   createCancelButton(svg,x0,y0);
-
-
-  //Create popout segments
-  // for (var i = 0; i < tileGroups.length; i++) {
-    // createExtendMenus(tileGroups[i],i,svg);
-  // }
-
-
-
-
 }
-
-/* function createPie(svg, tileGroups) {
-  //Create base pie
-  this.pieces = tileGroups.length;
-  this.max = 360;
-  this.start = -45;
-  seg = max/pieces;
-  for (var i = 0; i < pieces; i++) {
-    createPieSegment(150,150,100,50,start,seg,svg,i);
-    start += seg;
-  }
-
-  createCancelButton(svg);
-
-
-  //Create popout segments
-  for (var i = 0; i < tileGroups.length; i++) {
-    createExtendMenus(tileGroups[i],i,svg);
-  }
-} */
-
-/* function createExtendMenus(tileGroup,idx,svg) {
-  // console.log(idx);
-  var p = tileGroup.count;
-  // console.log("TileGroupIdx: " + tileGroup.idx);
-  segAngle = start + idx * max / pieces + max / pieces / 2;
-  defSize = 30;
-  seg = 180/p;
-  if (p * defSize > 180) {
-    seg = 180/p;
-  } else {
-    seg = defSize;
-  }
-  s = segAngle - (seg*p)/2;
-  for (var i = 0; i < p; i++) {
-    createPieSegment(150,150,130,105,s,seg,svg,idx,"pie" + idx,tileGroup.idx+i);
-    s += seg;
-  }
-}
- */
-
 
 function segmentDragStart(event) {
   console.log("S Drag Start");
@@ -1160,8 +1159,8 @@ function segmentDragEnd(event) {
         //target is always svg element
         // if (event.target == codearea) {
           // showPieMenu(pieMenuTouches[id].x,pieMenuTouches[id].y);
-          createTile(segmentTouches[id].tile, null, event.changedTouches[id].clientX, event.changedTouches[id].clientY);
-        // }        
+          createTile(segmentTouches[id].tile, null, event.changedTouches[id].clientX, event.changedTouches[id].clientY, event.target.parentNode.windex);
+        // }
       } else {
           var svg = event.changedTouches[id].target;
           while (svg.tagName != "svg") {
@@ -1196,11 +1195,11 @@ function calcBoundingBox(xList,yList) {
 }
 
 function pieExtendClick(tile, svg, event) {
-  createTile(tile, svg);
+  createTile(tile, svg, 0, 0, svg.windex);
   closePieMenu(event);
 }
 
-function createTile(tile, svg, x, y) {
+function createTile(tile, svg, x, y, id) {
   //Based on embedded function in main.js
   // console.log("Tile: " + tile + ", " + svg + ", " + svg.xPoint + ", " + svg.yPoint);
   if (tile.nodeType != 1) {
@@ -1208,41 +1207,30 @@ function createTile(tile, svg, x, y) {
   }
   var xPoint, yPoint;
   if (svg) {
-    console.log("Tile: " + svg.xPoint + ", " + svg.yPoint);
+    console.log("Tile: " + svg.xPoint + ", " + svg.yPoint + ", " + id);
     xPoint = svg.xPoint;
     yPoint = svg.yPoint;
   } else {
-    console.log("Tile: " + x + ", " + y);
+    console.log("Tile: " + x + ", " + y + ", " + id);
     xPoint = x;
     yPoint = y;
   }
 
   var cl = tile.cloneNode(true);
+  cl.windex = id;
   addTileTouchToTile(cl);
   if (!cl.dataset) {
       cl.dataset = {};
       for (var k in this.dataset)
           cl.dataset[k] = this.dataset[k];
   }
-  codearea.appendChild(cl);
+  codearea2[id].appendChild(cl);
   cl.style.position = 'absolute';
-  cl.style.top = (codearea.scrollTop + yPoint - tile.offsetWidth * 0.5) + "px";
+  cl.style.top = (codearea2[id].scrollTop + yPoint - tile.offsetWidth * 0.5) + "px";
   cl.style.left = (xPoint - tile.offsetHeight * 0.5) + 'px';
   cl.style.display = "";
   attachTileBehaviour(cl);
-
-  // tile.addEventListener("click",
-  //   function (event) {
-  //     if (tile_showing) { return; }
-  //     if (event.shiftKey) {
-  //       current_tile = event.target;
-  //       if (!(current_tile.className).includes("tile")) {
-  //         current_tile = current_tile.parentNode;
-  //       }
-  //       showTileMenu(event.clientX,event.clientY);
-  //       event.stopPropagation();
-  //     }
-  //   });
+  tiles2[id].push(cl);
 
   if (!cl.next)
     cl.next = false;

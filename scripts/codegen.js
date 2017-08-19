@@ -294,12 +294,12 @@ function generateNodeCode(n, loc) {
         return 'class ' + name + '.' + constructor + arg + ' {\n' + body + indent + '}'
     }
 }
-function sortChunks() {
+function sortChunks(id) {
     var classes = [];
     var defs = [];
     var others = [];
-    for (var i=0; i<codearea.children.length; i++) {
-        var child = codearea.children[i];
+    for (var i=0; i<codearea2[id].children.length; i++) {
+        var child = codearea2[id].children[i];
         if (child.prev != false)
             continue;
         if (child.classList.contains('class'))
@@ -311,15 +311,15 @@ function sortChunks() {
     }
     return classes.concat(defs).concat(others);
 }
-function generateCode() {
+function generateCode(id) {
     blockIndent = 0;
-    var tb = document.getElementById('gracecode');
+    var tb = document.getElementById('gracecode' + id);
     tb.value = '';
     var dialect = document.getElementById('dialect').value;
     if (dialect)
         tb.value = 'dialect "' + dialect + '"\n';
     var chunkLine = "// chunks:";
-    var chunks = sortChunks();
+    var chunks = sortChunks(id);
     for (var i=0; i<chunks.length; i++) {
         var child = chunks[i];
         chunkLine += " " + child.style.left + "," + child.style.top;
@@ -330,16 +330,14 @@ function generateCode() {
         tb.value = tb.value + "\n";
     }
     var blob = new Blob([tb.value + chunkLine], {type: "text/x-grace;charset=utf-8"});
-    if (document.getElementById('downloadlink').href)
-        URL.revokeObjectURL(document.getElementById('downloadlink').href);
-    var href = URL.createObjectURL(blob);
-    // document.getElementById('downloadlink').href = URL.createObjectURL(blob);
-    document.getElementById('downloadlink').href = href;
+    if (document.getElementById('downloadlink'+ id).href)
+        URL.revokeObjectURL(document.getElementById('downloadlink'+id).href);
+    var href = URL.createObjectURL(blob);    
+    document.getElementById('downloadlink'+id).href = href;
     
-    var dl2 = document.getElementsByClassName("downloadlink2");    
+    var dl2 = document.getElementsByClassName("downloadlink2"+id);    
     for (var i = 0; i < dl2.length; i++) {
        dl2[i].setAttributeNS("http://www.w3.org/1999/xlink", "href",href);       
     }
-    // document.getElementById("downloadlink2").setAttribute("href",document.getElementById('downloadlink').href);
 }
 

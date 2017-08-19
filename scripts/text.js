@@ -1,19 +1,21 @@
 "use strict"
 var shrinkFuncs = [];
 var growFuncs = [];
-function shrink() {
-    if (highlightTileErrors())
+function shrink(id) {
+    console.log("Shrink: " + id);
+    if (codearea2[id].viewChange) { return; }
+    if (highlightTileErrors(null,id))
         return;
-    var viewButton = document.getElementById('viewbutton');
-    viewButton.disabled = "disabled";
-    editor.setValue(document.getElementById('gracecode').value, -1);
-    editor.getSession().clearAnnotations();
-    codearea.classList.add('shrink');
+    closeAllMenus(id,"pie");
+    codearea2[id].viewChange = 1;
+    editor2[id].setValue(document.getElementById('gracecode'+id).value, -1);
+    editor2[id].getSession().clearAnnotations();
+    codearea2[id].classList.add('shrink');
     shrinkFuncs.forEach(function(f){f()});
-    toolbox.style.visibility = 'hidden';
+    // toolbox.style.visibility = 'hidden';
     var starts = [];
     chunkLine = "\n// chunks:";
-    var chunks = sortChunks();
+    var chunks = sortChunks(id);
     for (var i=0; i<chunks.length; i++) {
         var child = chunks[i];
         chunkLine += " " + child.style.left + "," + child.style.top;
@@ -21,9 +23,9 @@ function shrink() {
         continue;
     }
     setTimeout(function() {
-        var leftEdge = (document.getElementsByClassName('ace_gutter')[0].offsetWidth + 3) + 'px';
+        var leftEdge = (document.getElementById(windowIdName + id).getElementsByClassName('ace_gutter')[0].offsetWidth + 3) + 'px';
         var runningTop = -1;
-        var offset = document.getElementsByClassName('ace_gutter-cell')[0].offsetHeight;
+        var offset = document.getElementById(windowIdName + id).getElementsByClassName('ace_gutter-cell')[0].offsetHeight;
         if (document.getElementById('dialect').value)
             runningTop += offset;
         for (var i=0; i<starts.length; i++) {
@@ -44,40 +46,44 @@ function shrink() {
             runningTop += offset;
         }
         setTimeout(function() {
-            ctr.style.visibility = 'visible';
-            codearea.style.visibility = 'hidden';
-            document.getElementById('indicator').style.background = 'green';
-            viewButton.disabled = "";
+            editor3[id].style.visibility = 'visible';
+            codearea2[id].style.visibility = 'hidden';
+            // document.getElementById('indicator').style.background = 'green';
+            // viewButton.disabled = "";
+            codearea2[id].viewChange = 0;
         }, 1100);
     }, 700);
 }
-function grow() {
-    if (editor.getValue() != document.getElementById('gracecode').value) {
+function grow(id) {
+    if (codearea2[id].viewChange) { return; }
+    if (editor2[id].getValue() != document.getElementById('gracecode'+id).value) {
         document.getElementById('stderr_txt').value = "";
         minigrace.modname = "main";
         minigrace.mode = "json";
-        minigrace.compile(editor.getValue() + chunkLine);
+        minigrace.compile(editor2[id].getValue() + chunkLine);
         minigrace.mode = "js";
         if (minigrace.compileError) {
-            var errmsg = showErrorInEditor(document.getElementById('stderr_txt').value);
+            var errmsg = showErrorInEditor(document.getElementById('stderr_txt').value,id);
             if (confirm("This code did not compile: " + errmsg + "\nDo you want to revert to the previous version that did?")) {
-                editor.setValue(document.getElementById('gracecode').value, -1);
-                editor.getSession().clearAnnotations();
+                editor2[id].setValue(document.getElementById('gracecode'+id).value, -1);
+                editor2[id].getSession().clearAnnotations();
                 return;
             }
             return;
         }
-        editor.getSession().clearAnnotations();
-        rebuildTilesInBackground(minigrace.generated_output);
+        editor2[id].getSession().clearAnnotations();
+        rebuildTilesInBackground(minigrace.generated_output,id);
     }
-    var viewButton = document.getElementById('viewbutton');
-    viewButton.disabled = "disabled";
-    document.getElementById('indicator').style.background = 'green';
-    ctr.style.visibility = 'hidden';
-    codearea.style.visibility = 'visible';
+    codearea2[id].viewChange = 1;
+    // var viewButton = document.getElementById('viewbutton');
+    // viewButton.disabled = "disabled";
+    // document.getElementById('indicator').style.background = 'green';
+    editor3[id].style.visibility = "hidden";
+    // ctr.style.visibility = 'hidden';
+    codearea2[id].style.visibility = 'visible';
     setTimeout(function() {
-        for (var i=0; i<codearea.children.length; i++) {
-            var child = codearea.children[i];
+        for (var i=0; i<codearea2[id].children.length; i++) {
+            var child = codearea2[id].children[i];
             if (child.prev != false)
                 continue;
             while (child) {
@@ -87,41 +93,42 @@ function grow() {
             }
         }
         setTimeout(function() {
-            codearea.classList.add('growing');
-            codearea.classList.remove('shrink');
+            codearea2[id].classList.add('growing');
+            codearea2[id].classList.remove('shrink');
             growFuncs.forEach(function(f){f()});
             setTimeout(function() {
-                codearea.classList.remove('growing');
-                toolbox.style.visibility = 'visible';
-                viewButton.disabled = "";
+                codearea2[id].classList.remove('growing');
+                // toolbox.style.visibility = 'visible';
+                // viewButton.disabled = "";
+                codearea2[id].viewChange = 0;
             }, 1000);
         }, 1100);
     }, 300);
 }
-function toggleShrink() {
-    if (codearea.classList.contains('shrink'))
-        grow();
+function toggleShrink(id) {
+    if (codearea2[id].classList.contains('shrink'))
+        grow(id);
     else
-        shrink();
+        shrink(id);
 }
-function rebuildTilesInBackground(jsonStr) {
-    codearea.classList.add("no-transition");
-    codearea.classList.remove('shrink');
-    loadJSON(jsonStr);
-    checkpointSave();
-    var leftEdge = (document.getElementsByClassName('ace_gutter')[0].offsetWidth + 4) + 'px';
+function rebuildTilesInBackground(jsonStr,id) {
+    codearea2[id].classList.add("no-transition");
+    codearea2[id].classList.remove('shrink');
+    loadJSON(jsonStr,id);
+    checkpointSave(id);
+    var leftEdge = (document.getElementById(windowIdName + id).getElementsByClassName('ace_gutter')[0].offsetWidth + 4) + 'px';
     var runningTop = 0;
     if (document.getElementById('dialect').value)
         runningTop = 19;
     var starts = [];
-    for (var i=0; i<codearea.children.length; i++) {
-        var child = codearea.children[i];
+    for (var i=0; i<codearea2[id].children.length; i++) {
+        var child = codearea2[id].children[i];
         if (child.prev != false)
             continue;
         starts.push(child);
         continue;
     }
-    codearea.classList.add('shrink');
+    codearea2[id].classList.add('shrink');
     for (var i=0; i<starts.length; i++) {
         starts[i].oldTop = starts[i].style.top;
         starts[i].oldLeft = starts[i].style.left;
@@ -139,9 +146,9 @@ function rebuildTilesInBackground(jsonStr) {
         }
         runningTop += 19;
     }
-    codearea.classList.remove("no-transition");
+    codearea2[id].classList.remove("no-transition");
 }
-function showErrorInEditor(errstr) {
+function showErrorInEditor(errstr,id) {
     var lines = errstr.split("\n");
     var errmsg = "";
     for (var i=0; i<lines.length; i++) {
@@ -152,7 +159,7 @@ function showErrorInEditor(errstr) {
     }
     var bits = errmsg.split(':');
     var errstr = errmsg.substring(bits[0].length + bits[1].length + 3);
-    editor.getSession().setAnnotations([{
+    editor2[id].getSession().setAnnotations([{
         row: bits[0] - 1,
         column: bits[1] - 1,
         text: errstr,
@@ -162,18 +169,18 @@ function showErrorInEditor(errstr) {
 }
 coddleBrowser('blink', function() {
     // Chrome has unusual ideas of what input sizes mean
-    shrinkFuncs.push(
-        function() {
-            var inputs = codearea.getElementsByTagName('input');
-            Array.prototype.forEach.call(inputs, function(el) {
-                el.style.width = (el.size * 8) + 'px';
-            });
-        }
-    );
-    growFuncs.push(
-        function() {
-            var inputs = codearea.getElementsByTagName('input');
-            Array.prototype.forEach.call(inputs, blinkCoddleInputs);
-        }
-    );
+    // shrinkFuncs.push(
+        // function() {
+            // var inputs = codearea.getElementsByTagName('input');
+            // Array.prototype.forEach.call(inputs, function(el) {
+                // el.style.width = (el.size * 8) + 'px';
+            // });
+        // }
+    // );
+    // growFuncs.push(
+        // function() {
+            // var inputs = codearea.getElementsByTagName('input');
+            // Array.prototype.forEach.call(inputs, blinkCoddleInputs);
+        // }
+    // );
 });

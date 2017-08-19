@@ -352,6 +352,7 @@ dialects.sniff = {
             description: "Create an image object.",
             inheritedVars: ["width", "height", "x", "y", "url"],
             onRegenerate: function(tile) {
+                var id = tile.windex;
                 var inheritsTile = tile.parentNode.parentNode;
                 if (!inheritsTile.classList.contains("inherits"))
                     return;
@@ -415,7 +416,7 @@ dialects.sniff = {
                         var menu = document.createElement("ul");
                         menu.classList.add("popup-menu");
                         var xy = findOffsetTopLeft(extra);
-                        menu.style.top = (xy.top + extra.offsetHeight - codearea.offsetTop - 10) + 'px';
+                        menu.style.top = (xy.top + extra.offsetHeight - codearea2[id].offsetTop - 10) + 'px';
                         menu.style.left = xy.left + 'px';
                         available.forEach(function(url) {
                             var li = document.createElement('li');
@@ -430,9 +431,9 @@ dialects.sniff = {
                             var inp=valOrigin.getElementsByTagName("input")[0];
                             li.addEventListener('click', function() {
                                 inp.value = url;
-                                codearea.removeChild(menu);
+                                codearea2[id].removeChild(menu);
                                 updateTileIndicator();
-                                generateCode();
+                                generateCode(id);
                                 checkpointSave();
                                 if (typeof Event == 'function') {
                                     var event = new Event('blur');
@@ -447,7 +448,7 @@ dialects.sniff = {
                                 inp.classList.remove('popout');
                             });
                         });
-                        codearea.appendChild(menu);
+                        codearea2[id].appendChild(menu);
                     }
                     extra.src = strValue;
                     assign.appendChild(extra);
@@ -1069,7 +1070,7 @@ function addDialectMethods(dialect) {
     for (var k in di.methods) {
         var tile = createDialectRequestTile(di.methods[k]);
         tb.appendChild(tile);
-        attachToolboxBehaviour(tile);
+        // attachToolboxBehaviour(tile);
         if (di.methods[k].category) {
             var cat = di.methods[k].category;
             categories[cat] = true;
@@ -1077,6 +1078,6 @@ function addDialectMethods(dialect) {
         }
     }
 }
-window.addEventListener("load", function() {
-    changeDialect();
-});
+// window.addEventListener("load", function() {
+    // changeDialect();
+// });

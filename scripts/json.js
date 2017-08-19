@@ -11,7 +11,7 @@ function generateNodeJSON(n) {
         if (n.childNodes.length)
             return generateNodeJSON(n.childNodes[0]);
         else
-            return null;f
+            return null;
     }
     if (n.classList.contains('number')) {
         return {type: 'number',
@@ -241,11 +241,11 @@ function generateNodeJSON(n) {
             body: body};
     }
 }
-function generateJSObject() {
-    var tb = document.getElementById('gracecode');
+function generateJSObject(id) {
+    var tb = document.getElementById('gracecode'+id);
     var chunks = [];
-    for (var i=0; i<codearea.children.length; i++) {
-        var child = codearea.children[i];
+    for (var i=0; i<codearea2[id].children.length; i++) {
+        var child = codearea2[id].children[i];
         if (child.prev != false)
             continue;
         var y = child.style.top;
@@ -514,7 +514,8 @@ function createTileFromJSON(obj) {
     newTile.style.display = '';
     return newTile;
 }
-function createChunkFromJSON(chunk) {
+function createChunkFromJSON(chunk,id) {
+    console.log("Chunk: " + chunk + ", " + id);
     if (chunk.body[0] == null)
         return;
     var tiles = Array.prototype.map.call(chunk.body, createTileFromJSON);
@@ -526,36 +527,38 @@ function createChunkFromJSON(chunk) {
     }
     var runningTop = +chunk.y.substring(0, chunk.y.length - 2);
     for (var i=0; i<tiles.length; i++) {
-        codearea.appendChild(tiles[i]);
+        codearea2[id].appendChild(tiles[i]);
         tiles[i].style.position = 'absolute';
         tiles[i].style.top = runningTop + 'px';
         runningTop += tiles[i].offsetHeight;
         tiles[i].style.left = chunk.x;
+        tiles2[id].push(tiles[i]);
+        tiles[i].windex = id;
     }
 }
-function loadJSON(str) {
-    var bin = document.getElementById('bin');
+function loadJSON(str,id) {
+    // var bin = document.getElementById('bin');
     // while (codearea.hasChildNodes())
         // codearea.removeChild(codearea.lastChild);
-    clearCode(1);
-    // codearea.appendChild(bin);
-    codearea.appendChild(desaturator);
+    clearCode(1,id);
+    // codearea.appendChild(bin);    
+    // codearea2[id].appendChild(desaturator);
     var obj = JSON.parse(str);
     var dialect = document.getElementById('dialect');
     for (var i=0; i<dialect.options.length; i++) {
         if (dialect.options[i].value == obj.dialect) {
             if (dialect.selectedIndex != i) {
                 dialect.selectedIndex = i;
-                changeDialect();
+                changeDialect(id);
             }
         }
     }
     if (!obj.dialect) {
         dialect.selectedIndex = 0;
-        changeDialect();
+        changeDialect(id);
     }
-    Array.prototype.forEach.call(obj.chunks, createChunkFromJSON);
-    Array.prototype.forEach.call(codearea.getElementsByTagName('input'),
+    Array.prototype.forEach.call(obj.chunks, function(chunk) { createChunkFromJSON(chunk, id) });
+    Array.prototype.forEach.call(codearea2[id].getElementsByTagName('input'),
             function(el) {
                     if (el.value.length > 0)
                         el.size = el.value.length;
@@ -564,11 +567,12 @@ function loadJSON(str) {
                         el.oldName = el.value;
                     }
             });
-    Array.prototype.forEach.call(tiles, attachTileBehaviour);
-    generateCode();
-    if (!codearea.classList.contains('shrink')) {
-        updateTileIndicator();
+    Array.prototype.forEach.call(tiles2[id], attachTileBehaviour);
+    generateCode(id);
+    if (!codearea2[id].classList.contains('shrink')) {
+        updateTileIndicator(id);
         jsonLoadFuncs.forEach(function(f) {f();});
+        // Array.prototype.forEach.call(codearea2[id].getElementsByTagName('input'), blinkCoddleInputs);        
     }
     return obj;
 }
@@ -584,7 +588,7 @@ function loadFile() {
         checkpointSave();
     });
 }
-function loadSample(k) {
+function loadSample(k,id) {
     if (!k || k == 'Select sample')
         return;
     var n = k;
@@ -602,6 +606,7 @@ function loadSample(k) {
     loading.style.top = '30%';
     loading.style.left = '30%';
     loading.style.width = '40%';
+    loading.style.zIndex = "999";
     var loadingBody = document.createElement('div');
     loadingBody.innerHTML = 'Loading sample "' + n + '": retrieving.<br />This may take a while.';
     loading.appendChild(loadingBody);
@@ -610,12 +615,12 @@ function loadSample(k) {
     progressBar.style.height = '20px';
     progressBar.style.width = '0px';
     loading.appendChild(progressBar);
-    document.body.appendChild(loading);
+    codearea2[id].appendChild(loading);
     var req = new XMLHttpRequest();
     req.open("GET", "./sample/" + k + ".grace", false);
     req.send(null);
     if (req.status == 200) {
-        bgMinigrace.onmessage = function(ev) {
+        bgMinigrace2[id].onmessage = function(ev) {
             if (!ev.data.success) {
                 alert("Sample failed to compile for some reason. "
                         + "This is probably a bug.");
@@ -626,16 +631,17 @@ function loadSample(k) {
                 + '": creating tiles. <br />This may take a while.';
             progressBar.style.width = "66%";
             setTimeout(function() {
-                loadJSON(ev.data.output);
-                checkpointSave();
-                history.replaceState(generateJSObject(), "", "#sample=" + k);
-                loading.parentNode.removeChild(loading);
-                addTileTouch();
+                loadJSON(ev.data.output,id);
+                checkpointSave(id);
+                // history.replaceState(generateJSObject(), "", "#sample=" + k);
+                console.log("Loading: " + loading + ", " + loading.parentNode);
+                // loading.parentNode.removeChild(loading);
+                addTileTouch(id);
             }, 50);
         }
         loadingBody.innerHTML = 'Loading sample "' + n + '": compiling. <br />This may take a while.';
         progressBar.style.width = "33%";
-        bgMinigrace.postMessage({action: "compile", mode: "json",
+        bgMinigrace2[id].postMessage({action: "compile", mode: "json",
             modname: "main", source: req.responseText});        
     } else {
         alert("Failed to retrieve sample.");
@@ -647,9 +653,9 @@ function ensureDataset(n) {
     if (!n.dataset)
         n.dataset = {};
 }
-coddleBrowser('blink', function() {
-    jsonLoadFuncs.push(function() {
-        Array.prototype.forEach.call(codearea.getElementsByTagName('input'),
-            blinkCoddleInputs);
-    });
-});
+// coddleBrowser('blink', function() {
+    // jsonLoadFuncs.push(function() {
+        // Array.prototype.forEach.call(codearea2[id].getElementsByTagName('input'),
+            // blinkCoddleInputs);
+    // });
+// });

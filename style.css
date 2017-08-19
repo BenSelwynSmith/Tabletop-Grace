@@ -114,7 +114,7 @@ html, body {
     /* height: calc(99vh - 40px); */
     height: 100%;
 }
-#desaturator {
+.desaturator {
     position: absolute;
     left: 0;
     top: 0;
@@ -127,25 +127,20 @@ html, body {
     display: none;
     transition: opacity 0.25s ease-out;
 }
-#codearea.desaturate #desaturator {
+.codearea.desaturate .desaturator {
     display: block;
     opacity: 0.7;
 }
-#codearea {
-    /*width: calc(100% - 460px);*/
-    width: 99%;
-    /*height: 90vh;  Work around Chrome bug 168840*/
-    /*height: calc(99vh - 40px);*/
-    height: 100%;
+
+.desaturator2 {
+  display: block;
+  opacity: 0.7;
+}
+
+.codearea {    
     background: #ddd;
-    position: relative;
-    float: left;
     overflow: auto;
-    order: 1;
-    -webkit-order: 1;
-    -ms-flex-order: 1;
     font-family: 'Monaco','Menlo','Ubuntu Mono','Droid Sans Mono','Consolas',monospace;
-    border-bottom: solid 1px black;
 }
 #toolbox {
     background: #ccf;
@@ -159,7 +154,7 @@ html, body {
     -ms-flex-order: 2;
     font-family: 'Monaco','Menlo','Ubuntu Mono','Droid Sans Mono','Consolas',monospace;
 }
-#overlay-canvas {
+.overlay-canvas {
     position: absolute;
     height: 90vh; /* Work around Chrome bug 168840*/
     height: calc(99vh - 40px);
@@ -648,7 +643,7 @@ input {
 .shrink .tile .op, .shrink .tile .cmpop, .shrink .tile .assop {
     color: #687687;
 }
-#gracecode {
+.gracecode {
     display: none;
 }
 #stderr_txt {
@@ -689,12 +684,12 @@ input {
     padding-left: 2ex;
     transition: padding 0.5s;
 }
-#codearea.shrink, #codearea.growing {
+.codearea.shrink, .codearea.growing {
     background: white;
 }
-#codearea.shrink #bin, #codearea.growing #bin {
+/* .codearea.shrink, .codearea.growing {
     display: none;
-}
+} */
 .tile {
     transition: background-color 0.5s, padding 0.5s, border-width 0.5s;
 }

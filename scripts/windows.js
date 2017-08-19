@@ -1,7 +1,20 @@
 "use strict"
 var windowMenu = [];
 var windowColors = ["red", "blue", "yellow", "green"];
+
 var windows = [];
+var codearea2 = [];
+var holes2 = [];
+var tiles2 = [];
+var errorTiles2 = [];
+var editor2 = [];
+var editor3 = [];
+var desaturator2 = [];
+var overlays2 = [];
+
+var getCode = [];
+
+
 var windowCount = 0;
 var windowMax = 4;
 var alt = 0;
@@ -11,6 +24,7 @@ var expanded = 0;
 var moved = 0;
 var markerWidth = 30;
 var markerHeight = 15;
+var windowIdName = "Window_";
 
 //Width of Menu
 var mw = 125;   //Half
@@ -34,7 +48,58 @@ function removeWindows() {
   windowCount = 0;
 }
 
-function testSetup(i) {  
+function windowsSetup() {
+  addWMenuTouch();
+  //Setup initial dialect (Adds some tiles)
+  addDialectMethods(document.getElementById('dialect').value);
+  for (var i = 0; i < windowMax; i++) {
+    addBlockWindow(i);
+    windows[i].style.display = "none";
+    windows[i].windex = i;
+    codearea2[i] = windows[i].children[0];
+    codearea2[i].windex = i;
+    desaturator2[i] = document.getElementById('desaturator' + i);
+    overlays2[i] = document.getElementById('overlay-canvas' + i);
+    addTouch(i);
+    tiles2[i] = [];    
+  }
+  setup();
+  
+  //Test Code
+  testSetup(1);  
+  showPieMenu(300,300,0);
+  showSecMenu(600,600,0);
+  //
+  
+  
+  getCode[0] = function() {
+    // if (codearea2[0].classList.contains("shrink"))
+      // return editor2[0].getValue();
+    return document.getElementById('gracecode' + 0).value;
+  };
+  getCode[1] = function() {
+    if (codearea2[1].classList.contains("shrink"))
+      return editor2[1].getValue();
+    return document.getElementById('gracecode' + 1).value;
+  };
+  getCode[2] = function() {
+    if (codearea2[2].classList.contains("shrink"))
+      return editor2[2].getValue();
+    return document.getElementById('gracecode' + 2).value;
+  };
+  getCode[3] = function() {
+    if (codearea2[3].classList.contains("shrink"))
+      return editor2[3].getValue();
+    return document.getElementById('gracecode' + 3).value;
+  };
+  
+  
+  
+  // document.getElementById('standard-canvas').getContext("2d").clearRect(0,0,200,200)
+  document.getElementById('standard-canvas').getContext("2d").clearRect = function() { };
+}
+
+function testSetup(i) {
   if (i == 1) {
     for (var a = 1; a < 4; a++) {
       windows[a].style.display = "none";
@@ -43,19 +108,19 @@ function testSetup(i) {
     windows[0].style.left = "2.5%";
     windows[0].style.top = "2.5%";
     windows[0].style.width = "95%";
-    windows[0].style.height = "95%";    
+    windows[0].style.height = "95%";
   }
   if (i == 2) {
     for (var a = 2; a < 4; a++) {
       windows[a].style.display = "none";
-    }    
+    }
     for (var a = 0; a < 2; a++) {
-      windows[a].style.display = "";            
+      windows[a].style.display = "";
       windows[a].style.top = "2.5%";
-      windows[a].style.width = "45%";
-      windows[a].style.height = "95%";    
-    }    
-    windows[0].style.left = "2.5%";
+      windows[a].style.width = "48%";
+      windows[a].style.height = "94.5%";
+    }
+    windows[0].style.left = "2%";
     windows[1].style.left = "50%";
     windows[1].style.transform = "";
   }
@@ -80,7 +145,7 @@ function propComparator2(prop) {
 }
 
 function bringToFront(t) {
-  var f = window.frameElement || t;
+  var f = t;
   var topDepth = depth + windowCount - 1;
 
   console.log("Windows: " + windows.length);
@@ -113,43 +178,55 @@ function checkExpandOutput() {
   }
 }
 
-function expandOutput() {
-  var c = document.getElementById("codearea");
+function expandOutput(id) {
   var o = document.getElementById("outputarea");
-  var b = document.getElementById("expand-button");
   if (expanded == 0) {
-    c.style.width = "70%";
-    o.style.width = "30%";
-    b.innerHTML = ">";
+    o.style.display = "";
+    o.style.zIndex = "995";
+    o.style.width = "50%";
+    o.style.left = "25%";
+    o.style.position = "fixed";
+    o.style.top = "24px";
+    o.style.height = "calc(100% - 48px)";
+    
     expanded = 1;
   } else {
-    c.style.width = "99%";
-    o.style.width = "1%";
-    b.innerHTML = "<";
+    o.style.display = "none";
     expanded = 0;
   }
+  // var c = document.getElementById("codearea");
+  // var o = document.getElementById("outputarea");
+  // var b = document.getElementById("expand-button");
+  // if (expanded == 0) {
+    // c.style.width = "70%";
+    // o.style.width = "30%";
+    // b.innerHTML = ">";
+    // expanded = 1;
+  // } else {
+    // c.style.width = "99%";
+    // o.style.width = "1%";
+    // b.innerHTML = "<";
+    // expanded = 0;
+  // }
+  
+  
 }
 
-function clearCode(b) {
-  // tiles = [];
-  // for (var i in tiles) {
-    // if (i.nodeType == 1) {
-      // tiles
-    // }
-  // }
-  for (var i = tiles.length; i--; ) {
-    tiles[i].remove();
+function clearCode(b,id) {
+  console.log("ClearCode");
+  for (var i = tiles2[id].length; i--; ) {
+    tiles2[id][i].remove();
   }
-  var children = codearea.children;
-  console.log(children.length);
-  for (var i = 0; i < codearea.children.length; i++) {
-    if (children[i].id != "desaturator" && children[i].className != "osk") {
-      codearea.removeChild(children[i]);
+  var children = codearea2[id].children;
+  // console.log(children.length);
+  for (var i = 0; i < codearea2[id].children.length; i++) {
+    if (children[i].classList.contains('tile')) {
+      codearea2[id].removeChild(children[i]);
       i--;
     }
   }
   if (!b) {
-    generateCode();
+    generateCode(id);
   }
 }
 
@@ -228,14 +305,15 @@ function rotateWindow(s,t) {
 
 
 function addBlockWindow(id) {
-  
+  // console.log("addBlockWindow " + id);
   var w = 1920/1080;
   var h = 1080/1920;
   if (windowCount < windowMax) {
-    var iframe = document.createElement('iframe');
-    iframe.setAttribute('src', "code.html");
-    // var iframe = document.getElementById("w" + id);    
-    document.body.appendChild(iframe);
+    // var iframe = document.createElement('iframe');
+    // iframe.setAttribute('src', "code.html");
+    var iframe = document.getElementById(windowIdName + id);
+    // if (!iframe) { return; }
+    // document.body.appendChild(iframe);4
     if (id == 0 || id == 3) {
       iframe.style.top = "10%";
       iframe.style.left = "15%";
@@ -262,7 +340,7 @@ function addBlockWindow(id) {
         iframe.rot = -90;
       }
     }
-    // iframe.style.position = "fixed";
+    iframe.style.position = "fixed";
     iframe.idx = windowCount;
     windows[windowCount] = iframe;
     iframe.depth = depth + windowCount;
@@ -314,7 +392,7 @@ function showWindowMenu2(event,x,y) {
   }
   var x = x | event.clientX ;
   var y = y | event.clientY;
-  
+
   var id = parseInt(target.getAttribute("id").slice(-1));
   console.log("SWM2: " + x + ", " + y + ", " + id);
   var svg0 = document.getElementById('window_svg');

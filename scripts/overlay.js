@@ -3,8 +3,9 @@ var markErrorsAlways = false;
 function drawLineBetweenElements(el1, el2, colour) {
     var c = document.getElementById('overlay-canvas');
     var ctx = c.getContext('2d');
+    var id = el1.windex;
     ctx.save();
-    ctx.translate(0, -codearea.scrollTop);
+    ctx.translate(0, -codearea2[id].scrollTop);
     var xy = findOffsetTopLeft(el1);
     var xy2 = findOffsetTopLeft(el2);
     var c1 = [
@@ -43,8 +44,9 @@ function drawLineBetweenElements(el1, el2, colour) {
     ctx.stroke();
     ctx.restore();
 }
-function showOverlay() {
+function showOverlay(id) {
     var c = document.getElementById('overlay-canvas');
+    var c = overlays2[id];
     var ctx = c.getContext('2d');
     c.style.display = 'block';
     setTimeout(function() {
@@ -52,21 +54,22 @@ function showOverlay() {
         c.style.display = 'none';
     }, 1000);
 }
-function drawConstantLines(el) {
+function drawConstantLines(el) {    
     if (!el.dataset.dialect)
         return;
+    var id = el.windex;
     var xy = findOffsetTopLeft(el);
     var c = document.getElementById('overlay-canvas');
     var ctx = c.getContext('2d');
     ctx.save();
-    ctx.translate(0, -codearea.scrollTop);
+    ctx.translate(0, -codearea2[id].scrollTop);
     ctx.beginPath();
-    if (codearea.style.visibility == 'hidden') {
+    if (codearea2[id].style.visibility == 'hidden') {
         ctx.moveTo(xy.left + el.offsetWidth / 2, xy.top);
-        ctx.lineTo(149, 19 - codearea.scrollTop);
+        ctx.lineTo(149, 19 - codearea2[id].scrollTop);
     } else {
         ctx.moveTo(xy.left + el.offsetWidth / 2, xy.top + el.offsetHeight);
-        ctx.lineTo(50, codearea.scrollTop + codearea.offsetHeight);
+        ctx.lineTo(50, codearea2[id].scrollTop + codearea2[id].offsetHeight);
     }
     ctx.strokeStyle = "hsla(120, 100%, 25%, 0.6)";
     ctx.lineWidth = 3;
@@ -74,20 +77,21 @@ function drawConstantLines(el) {
     ctx.restore();
 }
 function drawDialectRequestLines(el) {
+    var id = el.windex;
     var mn = el.childNodes[0];
     var xy = findOffsetTopLeft(mn);
     var c = document.getElementById('overlay-canvas');
     var ctx = c.getContext('2d');
     ctx.clearRect(0, 0, c.width, c.height);
     ctx.save();
-    ctx.translate(0, -codearea.scrollTop);
+    ctx.translate(0, -codearea2[id].scrollTop);
     ctx.beginPath();
-    if (codearea.style.visibility == 'hidden') {
+    if (codearea2[id].style.visibility == 'hidden') {
         ctx.moveTo(xy.left + mn.offsetWidth / 2, xy.top);
-        ctx.lineTo(149, 19 - codearea.scrollTop);
+        ctx.lineTo(149, 19 - codearea2[id].scrollTop);
     } else {
         ctx.moveTo(xy.left + mn.offsetWidth / 2, xy.top + mn.offsetHeight);
-        ctx.lineTo(50, codearea.scrollTop + codearea.offsetHeight);
+        ctx.lineTo(50, codearea2[id].scrollTop + codearea2[id].offsetHeight);
     }
     ctx.strokeStyle = "hsla(120, 100%, 25%, 0.6)";
     ctx.lineWidth = 3;
@@ -96,9 +100,10 @@ function drawDialectRequestLines(el) {
 }
 function drawMethodRequestLines(el) {
     var vars = [];
+    var id = el.windex;
     var myInput = el.getElementsByTagName('input')[0];
     var myName = myInput.value;
-    var meths = codearea.getElementsByClassName("method");
+    var meths = codearea2[id].getElementsByClassName("method");
     for (var i=0; i<meths.length; i++) {
         var methInput = meths[i].getElementsByTagName('input')[0];
         if (myName == methInput.value)
@@ -107,20 +112,21 @@ function drawMethodRequestLines(el) {
 }
 function drawMethodDefinitionLines(el) {
     var vars = [];
+    var id = el.windex;
     var myInput = el.getElementsByTagName('input')[0];
     var myName = myInput.value;
-    var meths = codearea.getElementsByClassName("selfcall");
+    var meths = codearea2[id].getElementsByClassName("selfcall");
     for (var i=0; i<meths.length; i++) {
         var methInput = meths[i].getElementsByTagName('input')[0];
         if (myName == methInput.value)
             drawLineBetweenElements(myInput, methInput, "hsla(240, 100%, 50%, 0.6)");
     }
 }
-function clearPopouts() {
-    var popouts = codearea.getElementsByClassName('popout');
+function clearPopouts(id) {
+    var popouts = codearea2[id].getElementsByClassName('popout');
     while (popouts.length)
         popouts[0].classList.remove('popout');
-    popouts = codearea.getElementsByClassName('popout-arrow');
+    popouts = codearea2[id].getElementsByClassName('popout-arrow');
     while (popouts.length)
         popouts[0].parentNode.removeChild(popouts[0]);
 }
@@ -136,6 +142,7 @@ function highlightVarReferences(el) {
 function highlightVarDefinition(el, name) {
     var varNames = [];
     var vars = [];
+    var id = el.windex;
     findVarsInScope(el, varNames, vars);
     var myName;
     if (name)
@@ -162,38 +169,38 @@ function highlightVarDefinition(el, name) {
         defInput = defEl;
     defInput.classList.add('popout');
     var xy = findOffsetTopLeft(defInput);
-    if (xy.top > codearea.scrollTop + codearea.offsetHeight) {
+    if (xy.top > codearea2[id].scrollTop + codearea2[id].offsetHeight) {
         createOffscreenArrow('down');
-    } else if (xy.top + defInput.offsetHeight < codearea.scrollTop) {
+    } else if (xy.top + defInput.offsetHeight < codearea2[id].scrollTop) {
         createOffscreenArrow('up');
-    } else if (xy.left > codearea.scrollLeft + codearea.offsetWidth) {
+    } else if (xy.left > codearea2[id].scrollLeft + codearea2[id].offsetWidth) {
         createOffscreenArrow('right');
-    } else if (xy.left + defInput.offsetWidth < codearea.scrollLeft) {
+    } else if (xy.left + defInput.offsetWidth < codearea2[id].scrollLeft) {
         createOffscreenArrow('left');
     }
 }
-function createOffscreenArrow(dir) {
+function createOffscreenArrow(dir,id) {
     var arrow = document.createElement('div');
     arrow.classList.add('popout-arrow');
     if (dir == 'up') {
-        arrow.style.top = (codearea.scrollTop) + 'px';
-        arrow.style.left = (codearea.scrollLeft + 0.45 * codearea.offsetWidth - 40) + 'px';
+        arrow.style.top = (codearea2[id].scrollTop) + 'px';
+        arrow.style.left = (codearea2[id].scrollLeft + 0.45 * codearea2[id].offsetWidth - 40) + 'px';
         arrow.innerHTML = '&#58543;';
     } else if (dir == 'down') {
-        arrow.style.top = (codearea.scrollTop + codearea.offsetHeight - 80) + 'px';
-        arrow.style.left = (codearea.scrollLeft + 0.45 * codearea.offsetWidth - 40) + 'px';
+        arrow.style.top = (codearea2[id].scrollTop + codearea2[id].offsetHeight - 80) + 'px';
+        arrow.style.left = (codearea2[id].scrollLeft + 0.45 * codearea2[id].offsetWidth - 40) + 'px';
         arrow.innerHTML = '&#58544;';
     } else if (dir == 'left') {
-        arrow.style.left = (codearea.scrollLeft) + 'px';
-        arrow.style.top = (codearea.scrollTop + 0.45 * codearea.scrollHeight - 40) + 'px';
+        arrow.style.left = (codearea2[id].scrollLeft) + 'px';
+        arrow.style.top = (codearea2[id].scrollTop + 0.45 * codearea2[id].scrollHeight - 40) + 'px';
         arrow.innerHTML = '&#58541;';
     } else if (dir == 'right') {
-        arrow.style.top = (codearea.scrollTop + 0.45 * codearea.offsetHeight - 40) + 'px';
-        arrow.style.left = (codearea.scrollLeft + codearea.offsetWidth - 80) + 'px';
+        arrow.style.top = (codearea2[id].scrollTop + 0.45 * codearea2[id].offsetHeight - 40) + 'px';
+        arrow.style.left = (codearea2[id].scrollLeft + codearea2[id].offsetWidth - 80) + 'px';
         arrow.innerHTML = '&#58542;';
     }
     arrow.classList.add(dir);
-    codearea.appendChild(arrow);
+    codearea2[id].appendChild(arrow);
     return arrow;
 }
 function drawVardecLines(el) {
@@ -240,15 +247,15 @@ function drawVarRefLines(el) {
         drawLineBetweenElements(defInput, vars[i].childNodes[0], "hsla(0, 100%, 50%, 0.6)");
     }
 }
-function drawVarLinesOverText(e) {
+function drawVarLinesOverText(e,id) {
     if (document.getElementsByClassName('ace_sb').length)
-        codearea.scrollTop = document.getElementsByClassName('ace_sb')[0].scrollTop;
+        codearea2[id].scrollTop = document.getElementsByClassName('ace_sb')[0].scrollTop;
     else
-        codearea.scrollTop = document.getElementsByClassName('ace_scrollbar')[0].scrollTop;
-    var y = e.clientY + codearea.scrollTop - codearea.offsetTop;
+        codearea2[id].scrollTop = document.getElementsByClassName('ace_scrollbar')[0].scrollTop;
+    var y = e.clientY + codearea2[id].scrollTop - codearea2[id].offsetTop;
     var x = e.clientX;
-    var vars = codearea.getElementsByClassName('var');
-    document.getElementById('overlay-canvas').getContext('2d').clearRect(0, 0, codearea.offsetWidth, codearea.offsetHeight);
+    var vars = codearea2[id].getElementsByClassName('var');
+    document.getElementById('overlay-canvas').getContext('2d').clearRect(0, 0, codearea2[id].offsetWidth, codearea2[id].offsetHeight);
     var position = e.getDocumentPosition();
     var token = editor.session.getTokenAt(position.row, position.column);
     for (var i=0; i<vars.length; i++) {
@@ -264,7 +271,7 @@ function drawVarLinesOverText(e) {
             document.getElementById('overlay-canvas').style.display = 'block';
         }
     }
-    vars = codearea.getElementsByClassName('vardec');
+    vars = codearea2[id].getElementsByClassName('vardec');
     for (var i=0; i<vars.length; i++) {
         var xy = findOffsetTopLeft(vars[i]);
         if (y >= xy.top - vars[i].clientHeight / 2
@@ -278,7 +285,7 @@ function drawVarLinesOverText(e) {
             document.getElementById('overlay-canvas').style.display = 'block';
         }
     }
-    vars = codearea.getElementsByClassName('selfcall');
+    vars = codearea2[id].getElementsByClassName('selfcall');
     for (var i=0; i<vars.length; i++) {
         var xy = findOffsetTopLeft(vars[i]);
         if (y >= xy.top - vars[i].clientHeight / 2
@@ -292,7 +299,7 @@ function drawVarLinesOverText(e) {
             document.getElementById('overlay-canvas').style.display = 'block';
         }
     }
-    vars = codearea.getElementsByClassName('method');
+    vars = codearea2[id].getElementsByClassName('method');
     for (var i=0; i<vars.length; i++) {
         var xy = findOffsetTopLeft(vars[i]);
         if (y >= xy.top - vars[i].clientHeight / 2
@@ -306,7 +313,7 @@ function drawVarLinesOverText(e) {
             document.getElementById('overlay-canvas').style.display = 'block';
         }
     }
-    vars = codearea.getElementsByClassName('dialect-method');
+    vars = codearea2[id].getElementsByClassName('dialect-method');
     for (var i=0; i<vars.length; i++) {
         var xy = findOffsetTopLeft(vars[i]);
         if (y >= xy.top - vars[i].clientHeight / 2
@@ -322,7 +329,7 @@ function drawVarLinesOverText(e) {
             document.getElementById('overlay-canvas').style.display = 'block';
         }
     }
-    vars = codearea.getElementsByClassName('constant');
+    vars = codearea2[id].getElementsByClassName('constant');
     for (var i=0; i<vars.length; i++) {
         var xy = findOffsetTopLeft(vars[i]);
         if (y >= xy.top - vars[i].clientHeight / 2
@@ -373,28 +380,29 @@ function dameraulevenshtein(seq1, seq2) {
     return thisrow[seq2.length - 1];
 }
 
-function findErroneousTiles(reasons) {
+function findErroneousTiles(reasons,id) {
     if (!reasons)
         reasons = [];
     var tiles = [];
-    var emptyHoles = codearea.querySelectorAll(".hole:empty");
+    // console.log("fet: " + id + ", " + codearea2[id]);
+    var emptyHoles = codearea2[id].querySelectorAll(".hole:empty");
     for (var i=0; i<emptyHoles.length; i++) {
         tiles.push(emptyHoles[i]);
         reasons.push("Something needs to go in here");
     }
-    var varNames = codearea.getElementsByClassName("variable-name");
+    var varNames = codearea2[id].getElementsByClassName("variable-name");
     for (var i=0; i<varNames.length; i++)
         if (!isValidVariableName(varNames[i].value)) {
             tiles.push(varNames[i]);
             reasons.push("The variable name \"" + varNames[i].value + "\" is invalid");
         }
-    var methodNames = codearea.getElementsByClassName("method-name");
+    var methodNames = codearea2[id].getElementsByClassName("method-name");
     for (var i=0; i<methodNames.length; i++)
         if (!isValidVariableName(methodNames[i].value)) {
             tiles.push(methodNames[i]);
             reasons.push("The method name \"" + methodNames[i].value + "\" is invalid");
         }
-    var numbers = codearea.querySelectorAll(".tile.number > input");
+    var numbers = codearea2[id].querySelectorAll(".tile.number > input");
     for (var i=0; i<numbers.length; i++)
         if (numbers[i].value == "") {
             tiles.push(numbers[i]);
@@ -403,7 +411,7 @@ function findErroneousTiles(reasons) {
             tiles.push(numbers[i]);
             reasons.push("This is not a valid number");
         }
-    var varNames = codearea.getElementsByClassName("var-name");
+    var varNames = codearea2[id].getElementsByClassName("var-name");
     for (var i=0; i<varNames.length; i++) {
         if (varNames[i].innerHTML == "") {
             tiles.push(varNames[i].parentNode);
@@ -421,28 +429,28 @@ function findErroneousTiles(reasons) {
             }
         }
     }
-    var methodDeclarations = codearea.getElementsByClassName('method');
+    var methodDeclarations = codearea2[id].getElementsByClassName('method');
     for (var i=0; i<methodDeclarations.length; i++) {
         var md = methodDeclarations[i];
-        if (md.parentNode != codearea &&
+        if (md.parentNode != codearea2[id] &&
             !md.parentNode.classList.contains('object-scope')) {
             tiles.push(md);
             reasons.push("A method declaration cannot appear here");
         }
     }
-    var varDeclarations = codearea.getElementsByClassName('vardec');
+    var varDeclarations = codearea2[id].getElementsByClassName('vardec');
     for (var i=0; i<varDeclarations.length; i++) {
         var md = varDeclarations[i];
-        if (md.parentNode != codearea
+        if (md.parentNode != codearea2[id]
                 && !md.parentNode.classList.contains('multi')) {
             tiles.push(md);
             reasons.push("A variable declaration cannot appear here");
         }
     }
-    var assignments = codearea.getElementsByClassName('assign');
+    var assignments = codearea2[id].getElementsByClassName('assign');
     for (var i=0; i<assignments.length; i++) {
         var md = assignments[i];
-        if (md.parentNode != codearea
+        if (md.parentNode != codearea2[id]
                 && !md.parentNode.classList.contains('multi')) {
             tiles.push(md);
             reasons.push("A variable assignment cannot appear here");
@@ -456,7 +464,7 @@ function findErroneousTiles(reasons) {
             }
         }
     }
-    var selfcalls = codearea.getElementsByClassName('selfcall');
+    var selfcalls = codearea2[id].getElementsByClassName('selfcall');
     for (var i=0; i<selfcalls.length; i++) {
         var sc = selfcalls[i];
         var methname = sc.childNodes[0].value;
@@ -485,7 +493,7 @@ function findErroneousTiles(reasons) {
             reasons.push(reason);
         }
     }
-    var holes = codearea.getElementsByClassName('hole');
+    var holes = codearea2[id].getElementsByClassName('hole');
     for (var i=0; i<holes.length; i++) {
         var hole = holes[i];
         if (!hole.lastChild)
@@ -497,8 +505,8 @@ function findErroneousTiles(reasons) {
                     + types[0] + ".");
         }
     }
-    for (var i=0; i<codearea.childNodes.length; i++) {
-        var ch = codearea.childNodes[i];
+    for (var i=0; i<codearea2[id].childNodes.length; i++) {
+        var ch = codearea2[id].childNodes[i];
         if (!ch.classList || !ch.classList.contains('tile'))
             continue;
         if (ch.dataset && ch.dataset.onlyInObject == "y") {
@@ -542,32 +550,34 @@ function holeCanHoldTile(hole, tile, extra) {
     extra.error = "Only " + accepts + " can go here, not " + types[0] + ".";
     return false;
 }
-function arrowOffscreenTiles(tiles) {
+function arrowOffscreenTiles(tiles,id) {
+    // var id = tiles[0].windex;
     var arrows = {};
     for (var i=0; i<tiles.length; i++) {
         var tile = tiles[i];
         var xy = findOffsetTopLeft(tile);
-        if (xy.top > codearea.scrollTop + codearea.offsetHeight) {
+        if (xy.top > codearea2[id].scrollTop + codearea2[id].offsetHeight) {
             if (!arrows['down'])
                 arrows['down'] = createOffscreenArrow('down');
-        } else if (xy.top + tile.offsetHeight < codearea.scrollTop) {
+        } else if (xy.top + tile.offsetHeight < codearea2[id].scrollTop) {
             if (!arrows['up'])
                 arrows['up'] = createOffscreenArrow('up');
-        } else if (xy.left > codearea.scrollLeft + codearea.offsetWidth) {
+        } else if (xy.left > codearea2[id].scrollLeft + codearea2[id].offsetWidth) {
             if (!arrows['right'])
                 arrows['right'] = createOffscreenArrow('right');
-        } else if (xy.left + tile.offsetWidth < codearea.scrollLeft) {
+        } else if (xy.left + tile.offsetWidth < codearea2[id].scrollLeft) {
             if (!arrows['left'])
                 arrows['left'] = createOffscreenArrow('left');
         }
     }
     return arrows;
 }
-function highlightTileErrors(tiles) {
+function highlightTileErrors(tiles,id) {
+    // console.log("hte: " + id);
     if (!tiles)
-        var tiles = findErroneousTiles();
+        var tiles = findErroneousTiles(null,id);
     if (tiles.length > 0) {
-        var arrows = arrowOffscreenTiles(tiles);
+        var arrows = arrowOffscreenTiles(tiles,id);
         for (var k in arrows)
             arrows[k].classList.add('error');
         tiles.push(indicator);
@@ -630,8 +640,8 @@ function findMutableVarsInScope(el, accum, elAccum) {
     var e = el;
     if (e.classList.contains('object') || e.classList.contains("class")) {
         // Inside an object, treat all top-level vars as in scope
-        for (var i=0; i<codearea.childNodes.length; i++) {
-            var ch = codearea.childNodes[i];
+        for (var i=0; i<codearea2[id].childNodes.length; i++) {
+            var ch = codearea2[id].childNodes[i];
             if (!ch.classList)
                 continue;
             if (!ch.classList.contains('tile'))
@@ -662,12 +672,13 @@ function findMutableVarsInScope(el, accum, elAccum) {
         e = e.prev;
     }
     // Then go out
-    if (el.parentNode != codearea)
+    if (el.parentNode != codearea2[id])
         findMutableVarsInScope(el.parentNode, accum, elAccum);
 }
-function findVarsInScope(el, accum, elAccum) {
+function findVarsInScope(el, accum, elAccum) {  
     // First go up
     var e = el;
+    var id = el.windex;
     if (e.classList.contains('method')) {
         var argInputs = e.childNodes[0].getElementsByClassName('variable-name');
         for (var i=0; i<argInputs.length; i++) {
@@ -696,8 +707,8 @@ function findVarsInScope(el, accum, elAccum) {
     }
     if (e.classList.contains('object') || e.classList.contains("class")) {
         // Inside an object, treat all top-level vars/defs as in scope
-        for (var i=0; i<codearea.childNodes.length; i++) {
-            var ch = codearea.childNodes[i];
+        for (var i=0; i<codearea2[id].childNodes.length; i++) {
+            var ch = codearea2[id].childNodes[i];
             if (!ch.classList)
                 continue;
             if (!ch.classList.contains('tile'))
@@ -732,11 +743,11 @@ function findVarsInScope(el, accum, elAccum) {
         e = e.prev;
     }
     // Then go out
-    if (el.parentNode != codearea)
+    if (el.parentNode != codearea2[id])
         findVarsInScope(el.parentNode, accum, elAccum);
     else {
         // All top-level classes are always in scope
-        var classes = codearea.getElementsByClassName('class');
+        var classes = codearea2[id].getElementsByClassName('class');
         for (var i=0; i<classes.length; i++) {
             var cls = classes[i];
             var argInputs = cls.getElementsByClassName('variable-name')[0];
