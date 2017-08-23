@@ -9,10 +9,13 @@ var tiles2 = [];
 var errorTiles2 = [];
 var editor2 = [];
 var editor3 = [];
+var editor4 = [];
 var desaturator2 = [];
 var overlays2 = [];
-
 var getCode = [];
+var canvas;
+
+var transforms = ["", "rotate(90deg)", "rotate(-90deg)", "rotate(180deg)"];
 
 
 var windowCount = 0;
@@ -39,6 +42,11 @@ var win1 = 'a';
 var win2 = 'a';
 
 var windowarea;
+var windowCon;
+
+var minigraceTermination;
+var minigraceRunning = 0;
+var mg2;
 
 function removeWindows() {
   for (var i = 0; i < windows.length; i++) {
@@ -48,10 +56,63 @@ function removeWindows() {
   windowCount = 0;
 }
 
+function canvasSwap() {
+  var c = document.getElementById('standard-canvas');
+  var d = document.getElementById('standard-canvas2');
+  c.setAttribute('id','standard-canvas2');
+  d.setAttribute('id','standard-canvas');
+}
+
+function positionCorrection(pos, windex) {
+  return [pos[0] - windows[windex].offsetLeft - windowCon.offsetLeft, pos[1] - windows[windex].offsetTop - windowCon.offsetTop];
+}
+
+function minigraceReset() {
+  minigraceMagicToggle();
+  // clearOutput();
+  setTimeout(minigraceMagicToggle, 100);
+}
+
+function minigraceMagicToggle() {
+  if (minigrace) {
+    mg2 = minigrace;
+    minigrace = null;
+  } else {
+    minigrace = mg2;
+    mg2 = null;
+  }
+}
+
+function weakTerminationChecker() {  
+  minigraceTermination++;
+  var t = minigraceTermination;
+  setTimeout(function() {
+    if (t == minigraceTermination) {
+      // console.log("Termination.");
+      minigraceRunning = 0;
+      codeRunningToggle(0);
+    }
+  }, 300);
+}
+
+function codeRunningToggle(b) {
+  if (b) {
+    Array.prototype.forEach.call(document.getElementsByClassName('goPie'), function(el) {
+      el.style.fill = 'red';
+    });
+  } else {
+    Array.prototype.forEach.call(document.getElementsByClassName('goPie'), function(el) {
+      el.style.fill = 'black';
+    });
+  }
+}
+
 function windowsSetup() {
   addWMenuTouch();
+  windowCon = document.getElementById('windowContainer');
   //Setup initial dialect (Adds some tiles)
   addDialectMethods(document.getElementById('dialect').value);
+  
   for (var i = 0; i < windowMax; i++) {
     addBlockWindow(i);
     windows[i].style.display = "none";
@@ -60,21 +121,30 @@ function windowsSetup() {
     codearea2[i].windex = i;
     desaturator2[i] = document.getElementById('desaturator' + i);
     overlays2[i] = document.getElementById('overlay-canvas' + i);
-    addTouch(i);
-    tiles2[i] = [];    
   }
   setup();
   
+  for (var i = 0; i < windowMax; i++) {
+    editor4[i] = editor3[i].children[2].children[0];
+    addTouch(i);
+    tiles2[i] = [];
+  }
+  
+  // canvas = document.getElementById('standard-canvas');
+  // canvas.addEventListener('touchend', expandOutput);
+  document.getElementById('stdout_txt').addEventListener('touchend', expandOutput);
+  
+  
   //Test Code
-  testSetup(1);  
-  showPieMenu(300,300,0);
-  showSecMenu(600,600,0);
+  testSetup(1);
+  // showPieMenu(300,300,0);
+  // showSecMenu(600,600,0);
   //
-  
-  
+
+
   getCode[0] = function() {
-    // if (codearea2[0].classList.contains("shrink"))
-      // return editor2[0].getValue();
+    if (codearea2[0].classList.contains("shrink"))
+      return editor2[0].getValue();
     return document.getElementById('gracecode' + 0).value;
   };
   getCode[1] = function() {
@@ -92,11 +162,11 @@ function windowsSetup() {
       return editor2[3].getValue();
     return document.getElementById('gracecode' + 3).value;
   };
-  
-  
-  
+
+
+
   // document.getElementById('standard-canvas').getContext("2d").clearRect(0,0,200,200)
-  document.getElementById('standard-canvas').getContext("2d").clearRect = function() { };
+  // document.getElementById('standard-canvas').getContext("2d").clearRect = function() { };
 }
 
 function testSetup(i) {
@@ -105,24 +175,47 @@ function testSetup(i) {
       windows[a].style.display = "none";
     }
     windows[0].style.display = "";
-    windows[0].style.left = "2.5%";
-    windows[0].style.top = "2.5%";
-    windows[0].style.width = "95%";
-    windows[0].style.height = "95%";
-  }
-  if (i == 2) {
+    windows[0].style.left = "0%";
+    windows[0].style.top = "0%";
+    windows[0].style.width = "100%";
+    windows[0].style.height = "100%";
+  } else if (i == 2) {
     for (var a = 2; a < 4; a++) {
       windows[a].style.display = "none";
     }
     for (var a = 0; a < 2; a++) {
       windows[a].style.display = "";
-      windows[a].style.top = "2.5%";
-      windows[a].style.width = "48%";
-      windows[a].style.height = "94.5%";
+      windows[a].style.top = "0%";
+      windows[a].style.width = "50%";
+      windows[a].style.height = "100%";
+      windows[a].style.transform = "";
     }
-    windows[0].style.left = "2%";
-    windows[1].style.left = "50%";
-    windows[1].style.transform = "";
+    windows[0].style.left = "0%";
+    windows[1].style.left = "50%";    
+  } else if (i == 3) {
+    for (var a = 0; a < 3; a++) {
+      windows[a].style.display = "";
+      windows[a].style.top = "0%";
+      windows[a].style.width = "33%";
+      windows[a].style.height = "100%";
+      windows[a].style.transform = "";
+    }
+    windows[0].style.left = "0%";
+    windows[1].style.left = "33%";
+    windows[2].style.left = "66%";
+    windows[3].style.width = "34%";
+  } else if (i == 4) {
+    for (var a = 0; a < 4; a++) {
+      windows[a].style.display = "";
+      windows[a].style.top = "0%";
+      windows[a].style.width = "25%";
+      windows[a].style.height = "100%";
+      windows[a].style.transform = "";
+    }
+    windows[0].style.left = "0%";
+    windows[1].style.left = "25%";
+    windows[2].style.left = "50%";
+    windows[3].style.left = "75%";    
   }
 }
 
@@ -145,10 +238,10 @@ function propComparator2(prop) {
 }
 
 function bringToFront(t) {
-  var f = t;
+ /*  var f = t;
   var topDepth = depth + windowCount - 1;
 
-  console.log("Windows: " + windows.length);
+  // console.log("Windows: " + windows.length);
 
   if (f.depth != topDepth) {
     var tmp = windows.slice();
@@ -169,7 +262,7 @@ function bringToFront(t) {
     return false;
   } else {
     return true;
-  }
+  } */
 }
 
 function checkExpandOutput() {
@@ -188,7 +281,7 @@ function expandOutput(id) {
     o.style.position = "fixed";
     o.style.top = "24px";
     o.style.height = "calc(100% - 48px)";
-    
+
     expanded = 1;
   } else {
     o.style.display = "none";
@@ -208,8 +301,8 @@ function expandOutput(id) {
     // b.innerHTML = "<";
     // expanded = 0;
   // }
-  
-  
+
+
 }
 
 function clearCode(b,id) {
@@ -228,7 +321,17 @@ function clearCode(b,id) {
   if (!b) {
     generateCode(id);
   }
+  // var pie = codearea2[id].getElementsByClassName('errorPie');  
+  // for (var i = 0; i < pie.length; i++) {
+    // pie[i].setAttribute('style.fill', 'green');
+  // }
+  
+  Array.prototype.forEach.call(codearea2[id].getElementsByClassName('errorPie'), function(el) {
+    el.style.fill = 'green';
+  });
 }
+
+
 
 function clearOutput() {
   var c = document.getElementById("standard-canvas");
@@ -340,7 +443,7 @@ function addBlockWindow(id) {
         iframe.rot = -90;
       }
     }
-    iframe.style.position = "fixed";
+    // iframe.style.position = "fixed";
     iframe.idx = windowCount;
     windows[windowCount] = iframe;
     iframe.depth = depth + windowCount;
@@ -384,9 +487,14 @@ function closeWindowMenu(id) {
   windowMenu[id] = null;
 }
 
+
+
 function showWindowMenu2(event,x,y) {
-  console.log(event.target);
+  // console.log(event.target);
   var target = event.target;
+  if (!event.target) {
+    target = document.getElementById('svg_' + event);
+  }
   while (target.tagName != "svg") {
       target = target.parentNode;
   }
@@ -403,6 +511,7 @@ function showWindowMenu2(event,x,y) {
   svg.style.display = "";
   svg.xPoint = x;
   svg.yPoint = y;
+  svg.idx = id;
   svg.setAttribute("class","piemenu");
   svg0.parentNode.appendChild(svg);
   svg.setAttribute("ts", Date.now());
@@ -446,21 +555,57 @@ function showWindowMenu2(event,x,y) {
 
 }
 
-function windowMenuClick(idx,rid) {
-  console.log("Idx: " + idx + ", rid: " + rid);
+function setRotation(idx,rid) {  
+  //Set Rotate
+  windows[idx].style.transform = transforms[rid];
+  windows[idx].rid = rid;  
+}
 
-  if (windows[idx]) {
-    if (windows[idx].style.display == "none") {
+function windowMenuClick(idx,rid,state) {
+  //Borders: 2px -> 100% - 6px  
+  //50% -> Left: Width 50% - 4px
+  //      Right: Width 50% - 6px
+  
+  
+  //State: 1 Tap, 2 Hold
+
+  //Operations:
+  //Window orientation: rid
+  //If w.rid == rid
+  //  Tap  -> Toggle Maximise
+  //  Hold -> Hide
+  //Else
+  //  Tap  -> Rotate to rid
+  //  Hold -> Hide
+  //Also fix window menu opening and closing
+
+  //Tap or Hold?
+  //Mouse example
+  var r = false;
+  if (windows[idx].rid != null && windows[idx].rid == rid) { r = true; }
+  console.log("Idx: " + idx + ", rid: " + rid + ", " + r + ", " + windows[idx].rid + ", " + (windows[idx].rid == rid));
+  //Show Window
+  if (windows[idx].style.display == "none") {
+    if (state == 1) {
       windows[idx].style.display = "";
-      bringToFront(windows[idx]);
     } else {
-      if (bringToFront(windows[idx])) {
-        //Already at front
-        windows[idx].style.display = "none";
-      }
+      return;
     }
-  } else {
-    //Create window
+  }
+  
+  if (state == 1) {
+    if (r) {
+      //Tap -> Toggle Maximise
+      console.log("Window: " + idx + ", Rotation: " + rid + " -> Toggle Maximise");
+    } else {
+      //Tap -> Rotate  
+      setRotation(idx,rid);
+      console.log("Window: " + idx + ", Rotation: " + rid + " -> Rotate");
+    }
+  } else if (state == 2) {
+    if (windows[idx].style.display == "") {
+      windows[idx].style.display = "none";
+    }
   }
 }
 
@@ -570,97 +715,6 @@ function createWindowMenu(svg,rid) {
 }
 
 
-
-function showWindowMenu(id,x,y) {
-  // var target = event.target;
-  //0 Bottom: bottom: 50px, left: 50%, margin-left: -125px
-  //1 Left: top: 50%, margin-top: -5px, left: -70px, transform: rotate(90deg)
-  //2 Right: -90deg, left -> right
-  //3 Top: 180deg, bottom -> top
-  var target = document.getElementById("svg_" + id);;
-  var m = document.createElement("div");
-  m.className = "window_menu";
-  var id = parseInt(target.getAttribute('id').slice(-1));
-  var w = window.innerWidth;
-  var h = window.innerHeight;
-  console.log(w + "," + h);
-
-
-
-  if (id == 0 || id == 3) {
-    x = x - mw;
-    m.style.animationName = "window_menu_anim_h";
-    m.style.left = Math.min(Math.max(10, x),(w-(mw2+10))) + 'px';
-    if (id == 0) {
-      m.style.bottom = "10px";
-    } else {
-      m.style.top = "10px";
-      m.style.transform = "rotate(180deg)";
-    }
-  } else {
-    var wh = 1080 / 1920;
-    y = y;
-    var xy = x * wh;
-    var wy = mw * wh;
-    var wy2 = wy - mh;
-    // var yMin = 15 + (mw * wh - mh);
-    var yMin = 15 + mw;
-    var yMax = h - 5 - mw;
-    // var yMax = h - 5 - (mw * wh - mh);
-    console.log(yMin + "," + yMax);
-
-    m.style.top = Math.min(Math.max(yMin, y),(yMax)) + 'px';
-    if (id == 1) {
-      m.style.animationName = "window_menu_anim_l";
-      m.style.left = "-40px";
-      m.style.transform = "rotate(90deg)";
-    } else {
-      m.style.animationName = "window_menu_anim_r";
-      m.style.right = "-40px";
-      m.style.transform = "rotate(-90deg)";
-    }
-  }
-
-  var div = document.createElement("div");
-  div.className = "window_menu_option";
-  var txt = document.createTextNode("Add Block Window");
-  div.appendChild(txt);
-  m.appendChild(div);
-  div.addEventListener("click", function(event) { addBlockWindow(id); closeWindowMenu(id);});
-
-  div = document.createElement("div");
-  div.className = "window_menu_option";
-  txt = document.createTextNode("Add Output Window");
-  div.appendChild(txt);
-  m.appendChild(div);
-  div.addEventListener("click", function(event) { addOutputWindow(id); closeWindowMenu(id);});
-
-  //Add touch events here: #TODO
-
-
-
-  target.parentNode.appendChild(m);
-  windowMenu[id] = m;
-}
-
-
-
-
-function createWidget() {
-  var vars = document.getElementsByClassName("vardec");
-  for (var i = 0; i < vars.length; i++) {
-    // <div class="select_widget">+
-    var div = document.createElement('div');
-    div.className += "select_widget";
-    // var txt = document.createTextNode('+');
-    // div.appendChild(txt);
-    vars[i].appendChild(div);
-    div.style.left = "-97%";
-    div.style.position = "relative";
-    vars[i].width -= "30px";
-  }
-}
-
 function createWidget3() {
   var vars = codearea.getElementsByClassName("tile");
   for (var i = 0; i < vars.length; i++) {
@@ -713,7 +767,7 @@ function removePointer(tile) {
 }
 
 function createWidget2() {
-  interactMode = 1;
+  // interactMode = 1;
 
   var vars = codearea.getElementsByClassName("tile");
   // console.log("Widgets needed : " + vars.length);

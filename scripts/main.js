@@ -30,7 +30,7 @@ function changeDialect(id) {
     while (dialectMethods.length) {
         tb.removeChild(dialectMethods[0]);
     }
-    addDialectMethods(document.getElementById('dialect').value);        
+    addDialectMethods(document.getElementById('dialect').value);
     generateCode(id);
     checkpointSave(id);
 }
@@ -50,18 +50,19 @@ function popupVarMenu(ev) {
     if (!el.classList.contains("var-name")) {
         el = el.children[0];
     }
-    
+    var windex = el.parentNode.windex;
+
     ev.stopImmediatePropagation();
-    var menus = codearea.getElementsByClassName('popup-menu');
+    var menus = codearea2[windex].getElementsByClassName('popup-menu');
     if (menus.length) {
         for (var i=0; i<menus.length; i++)
-            codearea.removeChild(menus[i]);
+            codearea2[windex].removeChild(menus[i]);
         return;
     }
     var menu = document.createElement("ul");
     menu.classList.add("popup-menu");
     var xy = findOffsetTopLeft(el);
-    menu.style.top = (xy.top + el.offsetHeight - codearea.offsetTop - 10) + 'px';
+    menu.style.top = (xy.top + el.offsetHeight - codearea2[windex].offsetTop - 10) + 'px';
     menu.style.left = xy.left + 'px';
     var vars = [];
     var mustBeMutable = el.parentNode.classList.contains('bind-lhs')
@@ -72,15 +73,16 @@ function popupVarMenu(ev) {
         findVarsInScope(el, vars, []);
     for (var i=0; i<vars.length; i++) {
         var opt = document.createElement('li');
-        opt.innerHTML = vars[i];        
-        addOptTouch(opt,function(ev) {        
-            clearPopouts();
+        opt.innerHTML = vars[i];
+        // opt.windex = windex;
+        addOptTouch(opt,function(ev) {
+            clearPopouts(windex);
             el.innerHTML = ev.target.innerHTML;
-            if (menu && menu.parentNode == codearea) { codearea.removeChild(menu); }
+            if (menu && menu.parentNode == codearea2[windex]) { codearea2[windex].removeChild(menu); }
             // codearea.removeChild(menu);
-            updateTileIndicator();
-            generateCode();
-            checkpointSave();
+            updateTileIndicator(windex);
+            generateCode(windex);
+            checkpointSave(windex);
         });
         // opt.addEventListener("mouseover", function(ev) {
         //     highlightVarDefinition(el, ev.target.innerHTML);
@@ -98,19 +100,19 @@ function popupVarMenu(ev) {
             msg = "There are no mutable variables reachable from this point in the code.";
         opt.title = msg;
         opt.addEventListener("click", function(ev) {
-            codearea.removeChild(menu);
+            codearea2[windex].removeChild(menu);
             alert(msg);
         });
         menu.appendChild(opt);
     }
-    codearea.appendChild(menu);
-    if (menu.offsetLeft + menu.offsetWidth > codearea.offsetWidth) {
+    codearea2[windex].appendChild(menu);
+    if (menu.offsetLeft + menu.offsetWidth > codearea2[windex].offsetWidth) {
         menu.style.left = '';
         menu.style.right = '0px';
     }
-    if (menu.offsetTop + menu.offsetHeight - codearea.scrollTop > codearea.offsetHeight) {
+    if (menu.offsetTop + menu.offsetHeight - codearea2[windex].scrollTop > codearea2[windex].offsetHeight) {
         menu.style.top = '';
-        menu.style.bottom = (codearea.offsetHeight - xy.top - codearea.offsetTop - 25) + 'px';
+        menu.style.bottom = (codearea2[windex].offsetHeight - xy.top - codearea2[windex].offsetTop - 25) + 'px';
     }
 }
 function switchPane(category) {
@@ -133,7 +135,7 @@ function attachTileBehaviour(n) {
 }
 
 //function attachTileBehaviour(n) {
-    /*n.addEventListener('mousedown', dragstart);    
+    /*n.addEventListener('mousedown', dragstart);
     n.addEventListener('contextmenu', function(ev) {
         ev.preventDefault();
         ev.stopPropagation();
@@ -267,7 +269,7 @@ function attachTileBehaviour(n) {
             });
     Array.prototype.forEach.call(n.getElementsByClassName('parameter-adder'),
             function(el) {
-                el.addEventListener('click', parameterAdd);
+                el.addEventListener("click", parameterAdd);
                 el.title = "Add parameter";
             });
     Array.prototype.forEach.call(n.getElementsByClassName('argument-adder'),
@@ -279,7 +281,7 @@ function attachTileBehaviour(n) {
 /* function blinkCoddleInputs(el) {
     // Chrome has unusual ideas of what input sizes mean
     var mod = 8;
-    if (!el.value) { 
+    if (!el.value) {
         mod = 20;
     }
     el.style.width = (el.size * mod) + 'px';
@@ -384,11 +386,11 @@ function parameterAdd(ev) {
     newParam.focus();
 }
 function attachHoleBehaviour(n) {
-    n.addEventListener('mouseup', holedrop);
-    n.addEventListener('mousemove', function(){alert("entering");});
+    /* n.addEventListener('mouseup', holedrop);
+    n.addEventListener('mousemove', function(){alert("entering");}); */
 }
 function attachToolboxBehaviour(n) {
-    n.addEventListener('mousedown', function(ev) {
+   /*  n.addEventListener('mousedown', function(ev) {
         var cl = this.cloneNode(true);
         if (!cl.dataset) {
             cl.dataset = {};
@@ -401,10 +403,10 @@ function attachToolboxBehaviour(n) {
         cl.style.left = codearea.offsetWidth + 'px';
         attachTileBehaviour(cl);
         dragstart.call(cl, ev);
-    });
+    }); */
 }
 
-function makeGetCodeFunc(id) {
+/* function makeGetCodeFunc(id) {
   return function() { getCodeFunc(id) };
 }
 
@@ -412,16 +414,16 @@ function getCodeFunc(id) {
   if (codearea2[id].classList.contains("shrink"))
     return editor2[id].getValue();
   return document.getElementById('gracecode' + id).value;
-}
+} */
 
 function resizeCanvas() {
   var canvas = document.getElementById('standard-canvas');
   canvas.width = canvas.offsetWidth;
-  canvas.height = canvas.offsetHeight;  
+  canvas.height = canvas.offsetHeight;
 }
 
 function go(id) {
-    if (!codearea2[id].classList.contains('shrink')) {      
+    if (!codearea2[id].classList.contains('shrink')) {
       if (highlightTileErrors(null,id))
         return;
     }
@@ -433,12 +435,17 @@ function go(id) {
       document.getElementById('standard-canvas').getContext('2d').fillRect = document.getElementById('standard-canvas').getContext('2d').clearRect;
       canvasHack = 1;
     }
-    
+
     resizeCanvas();
-    
+
     minigrace.modname = "main";
     // var getCode = makeGetCodeFunc(id);
     console.log("Go(" + id + "): " + minigrace.compilerun(getCode[id]()));
+
+    minigraceRunning = 1;
+    minigraceTermination = 0;
+    weakTerminationChecker();
+    codeRunningToggle(1);
 }
 var theBrowser = 'unknown';
 if (navigator.userAgent.search('Chrome') != -1) {

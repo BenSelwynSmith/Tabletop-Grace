@@ -2,11 +2,12 @@
 var shrinkFuncs = [];
 var growFuncs = [];
 function shrink(id) {
-    console.log("Shrink: " + id);
+    // console.log("Shrink: " + id);
     if (codearea2[id].viewChange) { return; }
     if (highlightTileErrors(null,id))
         return;
-    closeAllMenus(id,"pie");
+    // closeAllMenus(id,"pie");
+    
     codearea2[id].viewChange = 1;
     editor2[id].setValue(document.getElementById('gracecode'+id).value, -1);
     editor2[id].getSession().clearAnnotations();
@@ -51,11 +52,21 @@ function shrink(id) {
             // document.getElementById('indicator').style.background = 'green';
             // viewButton.disabled = "";
             codearea2[id].viewChange = 0;
+            var pies = codearea2[id].getElementsByClassName('piemenu');
+            for (var i = 0; i < pies.length;) {      
+              if (pies[i].classList.contains('sec')) {
+                editor4[id].appendChild(pies[i]);
+              } else {
+              pies[i].parentNode.removeChild(pies[i]);        
+              }
+            }
         }, 1100);
     }, 700);
 }
 function grow(id) {
     if (codearea2[id].viewChange) { return; }
+    
+    
     if (editor2[id].getValue() != document.getElementById('gracecode'+id).value) {
         document.getElementById('stderr_txt').value = "";
         minigrace.modname = "main";
@@ -101,6 +112,12 @@ function grow(id) {
                 // toolbox.style.visibility = 'visible';
                 // viewButton.disabled = "";
                 codearea2[id].viewChange = 0;
+                var pies = editor4[id].getElementsByClassName('piemenu');
+                for (var i = 0; i < pies.length;) {
+                  if (pies[i].classList.contains('sec')) {
+                    codearea2[id].appendChild(pies[i]);
+                  }
+                }
             }, 1000);
         }, 1100);
     }, 300);

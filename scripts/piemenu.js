@@ -44,14 +44,19 @@ function showTileMenu(x,y,src) {
   var svg0 = document.getElementById('tile_svg');
   var svg = svg0.cloneNode(true);
   svg.removeAttribute('id');
-  svg.style.top = ((codearea.scrollTop + y) - svg.getAttribute("height") * .5) + "px";
-  svg.style.left = ((x) - svg.getAttribute("width") * .5) + 'px';
+  var pos = positionCorrection([x,y],src.windex);
+  // svg.style.top = ((codearea2[src.windex].scrollTop + y) - svg.getAttribute("height") * .5) + "px";  
+  // svg.style.left = ((x) - svg.getAttribute("width") * .5) + 'px';
+  
+  svg.style.left = (pos[0] - svg.getAttribute("height")*.5) + "px";
+  svg.style.top = (pos[1] - svg.getAttribute("width")*.5) + "px";
   svg.style.display = "";
   svg.xPoint = x;
   svg.yPoint = y;
   svg.tileSrc = src;
   svg.setAttribute("class","piemenu");
-  svg0.parentNode.appendChild(svg);
+  // svg0.parentNode.appendChild(svg);
+  codearea2[src.windex].appendChild(svg);
   svg.setAttribute("ts", Date.now());
   createTileMenu(svg);
 }
@@ -102,7 +107,8 @@ function createTileMenu(svg) {
   newElement.style.fill = "black";
   newElement.style.fillOpacity = "0.5";
   svg.appendChild(newElement);
-  newElement.addEventListener("click", closeTileMenu);
+  // newElement.addEventListener("click", closeTileMenu);
+  newElement.addEventListener('touchend', closeTileMenu);
   newElement.style.pointerEvents = "all";
 
   /* Line \  */
@@ -115,7 +121,8 @@ function createTileMenu(svg) {
   newElement.style.strokeWidth = 5;
   newElement.style.strokeOpacity = .5;
   svg.appendChild(newElement);
-  newElement.addEventListener("click", closeTileMenu);
+  // newElement.addEventListener("click", closeTileMenu);
+  newElement.addEventListener('touchend', closeTileMenu);
   newElement.style.pointerEvents = "all";
 
   // Line /
@@ -128,7 +135,8 @@ function createTileMenu(svg) {
   newElement.style.strokeWidth = 5;
   newElement.style.strokeOpacity = .5;
   svg.appendChild(newElement);
-  newElement.addEventListener("click", closeTileMenu);
+  // newElement.addEventListener("click", closeTileMenu);
+  newElement.addEventListener('touchend', closeTileMenu);
   newElement.style.pointerEvents = "all";
 
   //Delete
@@ -140,7 +148,8 @@ function createTileMenu(svg) {
   newElement.setAttribute("r", r);
   newElement.style.fill = "white";
 
-  newElement.addEventListener("click", function(event) { deleteTile(event,svg.tileSrc); });
+  // newElement.addEventListener("click", function(event) { deleteTile(event,svg.tileSrc); });
+  newElement.addEventListener("touchend", function(event) { deleteTile(event,svg.tileSrc); });
   svg.appendChild(newElement);
   newElement.style.pointerEvents = "all";
 
@@ -165,7 +174,8 @@ function createTileMenu(svg) {
   newElement.setAttribute("cy", y2);
   newElement.setAttribute("r", r);
   newElement.style.fill = "white";
-  newElement.addEventListener("click", function(event) { cloneTile(event,svg.tileSrc); });
+  // newElement.addEventListener("click", function(event) { cloneTile(event,svg.tileSrc); });
+  newElement.addEventListener("touchend", function(event) { cloneTile(event,svg.tileSrc); });
   svg.appendChild(newElement);
   newElement.style.pointerEvents = "all";
 
@@ -238,7 +248,12 @@ function createTileMenuElement(svg,txt,x,y,r,t,tileToChange) {
   newElement.setAttribute("r", r);
   newElement.style.fill = "white";
   /* // addButtonTouch(newElement, changeTileTxt, svg.tileSrc); */
-  newElement.addEventListener("click", function() {
+  // newElement.addEventListener("click", function() {
+    // tileToChange.innerHTML = txt;
+    // closeTileMenu(null,svg);
+    // generateCode();
+  // });
+  newElement.addEventListener("touchend", function() {
     tileToChange.innerHTML = txt;
     closeTileMenu(null,svg);
     generateCode();
@@ -281,8 +296,13 @@ function cloneTile (event, tile) {
       addTileTouchToTile(tileChildren[i]);
     }
   }
-  newTile.style.left = tile.style.left + 5;
-  newTile.style.top = tile.style.top + 5;
+  newTile.style.left = tile.style.offsetLeft + 10 + 'px';
+  newTile.style.top = tile.style.offsetTop + 10 + 'px';
+  tiles2[tile.windex].push(newTile);
+  Array.prototype.forEach.call(newTile.getElementsByClassName('tile'), function(el) { 
+    tiles2[tile.windex].push(el);
+  });
+  
   codearea2[tile.windex].appendChild(newTile);
   updateTileIndicator(tile.windex);
   generateCode(tile.windex);
@@ -319,6 +339,7 @@ function deleteTile (event, tile) {
   clearPopouts(windex);
   overlays2[windex].style.display = 'none';
   svg.parentNode.removeChild(svg);
+  holes2[windex] = codearea2[windex].getElementsByClassName('hole');
 }
 
 function cloneSVG(target,x,y,id,cl) {
@@ -333,27 +354,35 @@ function cloneSVG(target,x,y,id,cl) {
   svg.xPoint = x;
   svg.yPoint = y;
   svg.windex = id;
-  windows[id].appendChild(svg);
+  codearea2[id].appendChild(svg);
   svg.setAttribute("ts", Date.now());
   return svg;
 }
 
-function showPieMenu(x,y,id) {
+function showPieMenu(x,y,id) {  
   if (id < 0 || id > 3) { return; }
-  createPieMenu(cloneSVG('pie_svg',x,y,id,"pie piemenu"));
+  // var x2 = x - windows[id].offsetLeft - ;
+  // var y2 = y - windows[id].offsetTop;
+  var pos = positionCorrection([x,y],id);    
+  // var svg = cloneSVG('pie_svg',x2,y2,id,"pie piemenu");  
+  createPieMenu(cloneSVG('pie_svg',pos[0],pos[1],id,"pie piemenu"));
 }
 
 function showSecMenu(x,y,id) {
   if (id < 0 || id > 3) { return; }
-  createSecondaryMenu(cloneSVG('sec_svg',x,y,id,"sec piemenu"));
+  var pos = positionCorrection([x,y],id);
+  createSecondaryMenu(cloneSVG('sec_svg',pos[0],pos[1],id,"sec piemenu"));
 }
 
 //window.setTimeout(function () { iframe.style.left = l2 + 'px'; iframe.style.top = t2 + 'px'},5);
 
 function closePieMenu(event) {
+  event.preventDefault();
+  event.stopPropagation();  
   var elem = event.target;
+  if (!elem.parentNode) { return; }
 
-  // console.log("closePie: " + elem.tagName);
+  console.log("closePie: " + elem.tagName);
   //Get containing SVG
   while (elem.tagName != "svg" && elem.parentNode != null) {
     elem = elem.parentNode;
@@ -610,7 +639,15 @@ function createExtendSec(svg,idx,txtData,start) {
     newElement.idx = i;
 
     if (idx == 0) {
-      newElement.addEventListener("click", function(event) {
+      /* newElement.addEventListener("click", function(event) {
+        var d = document.getElementById("dialect");
+        d.value = d.options[event.target.idx].value;
+        curDialect = event.target.idx;
+        changeDialect(windex);
+        tileList = [];
+        closeAllMenus(-1);
+      }); */
+      newElement.addEventListener("touchend", function(event) {
         var d = document.getElementById("dialect");
         d.value = d.options[event.target.idx].value;
         curDialect = event.target.idx;
@@ -618,6 +655,7 @@ function createExtendSec(svg,idx,txtData,start) {
         tileList = [];
         closeAllMenus(-1);
       });
+      
       newElement.setAttribute("class","sec" + idx);
       text1.setAttribute("class","sec" + idx);
       newElement.style.display = "none";
@@ -627,8 +665,12 @@ function createExtendSec(svg,idx,txtData,start) {
         newElement.style.fill = "gray";
       }
     } else if (idx == 6) {
-      newElement.addEventListener("click", function(event) {
-        clearCode(0,windex);        
+      // newElement.addEventListener("click", function(event) {
+        // clearCode(0,windex);
+      // });
+      newElement.addEventListener("touchend", function(event) {
+        clearCode(0,windex);
+        expandSecMenu(svg,-1);
       });
       newElement.setAttribute("class","sec" + idx);
       text1.setAttribute("class","sec" + idx);
@@ -636,7 +678,7 @@ function createExtendSec(svg,idx,txtData,start) {
       text1.style.display = "none";
       // newElement.setAttribute("fill", "red");
     } else if (idx == 5) {
-      newElement.addEventListener("click", function(event) {
+     /*  newElement.addEventListener("click", function(event) {
         var d = document.getElementById("samples");
         d.value = d.options[event.target.idx+1].value;
         // curSample = event.target.idx;
@@ -646,6 +688,14 @@ function createExtendSec(svg,idx,txtData,start) {
         // addTileTouch();
         checkpointSave(windex);
         // svg.sampleID = event.target.idx;
+      }); */
+      newElement.addEventListener("touchend", function(event) {
+        var d = document.getElementById("samples");
+        d.value = d.options[event.target.idx+1].value;        
+        closeAllMenus(windex);
+        console.log("Loading: " + d.value);
+        loadSample(d.value,windex);        
+        checkpointSave(windex);        
       });
       newElement.setAttribute("class","sec" + idx);
       text1.setAttribute("class","sec" + idx);
@@ -677,6 +727,12 @@ function rotatePoint(cx, cy, a, px, py) {
 }
 
 function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
+  //c :=
+  // 2          -> Sec Menu
+  //-2          -> Pie Menu
+  //-3          -> Window Menu
+  //'pie' + idx -> Pie Menu Outer Section
+
   if (c == 2) {
     // console.log(rx + "," + ry + "," + rad1 + "," + rad2 + "," + a1 + "," + a2 + "," + svg +
     // "," + idx + "," + c + "," + idx2 + "," + c2);
@@ -799,6 +855,10 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
         // tileText = tileText.replace(/\W/g, '');
         tileText = tileText.replace(/[(){}:=]/gi, '')
         tileText = tileText.toUpperCase();
+        tileText = tileText.trim();
+        if (tileText == "IF" && idx2 == 19) { tileText = "IF ELSE"; }
+        // console.log(tileText + ", " + idx + ", " + idx2);
+
         txtElem = document.createTextNode(tileText);
 
       }
@@ -820,7 +880,8 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
         a.setAttribute("download",dl.getAttribute("download"));
         a.appendChild(newElement);
         a.setAttribute("class","downloadlink2"+windex);
-        a.addEventListener("click", function() { expandSecMenu(svg,idx); });
+        // a.addEventListener("click", function() { expandSecMenu(svg,idx); });
+        a.addEventListener("touchend", function() { expandSecMenu(svg,idx); });
         svg.appendChild(a);
       } else {
         svg.appendChild(newElement);
@@ -835,12 +896,15 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
         createExtendSec(svg,idx,txt,a1+a2*.5);
 
 
-        newElement.addEventListener("click", function(event) {
+        // newElement.addEventListener("click", function(event) {
+          // expandSecMenu(svg,event.target.idx);
+        // });
+        newElement.addEventListener("touchend", function(event) {
           expandSecMenu(svg,event.target.idx);
         });
       } else if (idx == 1) {
         //Run Code
-        newElement.addEventListener("click", function() {
+       /*  newElement.addEventListener("click", function() {
           // console.log(windex);
           expandSecMenu(svg,idx);
           updateTileIndicator(windex);
@@ -850,10 +914,38 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
             checkExpandOutput();
             go(windex);
           }
+        }); */
+        newElement.addEventListener("touchend", function() {          
+          if (minigraceRunning) {
+            expandOutput();
+            return;
+          }
+          expandSecMenu(svg,idx);
+          updateTileIndicator(windex);
+          if (errorTiles2[windex].length > 0) {
+            highlightTileErrors(null,id);
+          } else {
+            checkExpandOutput();
+            go(windex);
+          }
         });
+        newElement.setAttribute('class', 'goPie');
+        if (minigraceRunning) { newElement.style.fill = "red"; }
       } else if (idx == 2) {
         //Code View
-        newElement.addEventListener("click", function() {
+        /* newElement.addEventListener("click", function() {
+          expandSecMenu(svg,idx);
+          if (!(document.getElementById("viewbutton").disabled)) {
+              toggleShrink(windex);
+              if (svg.currentView == 0) {
+                svg.currentView = 1;
+              } else {
+                svg.currentView = 0;
+              }
+              closeSecondaryMenu(svg)
+          }
+        }); */
+        newElement.addEventListener("touchend", function() {
           expandSecMenu(svg,idx);
           if (!(document.getElementById("viewbutton").disabled)) {
               toggleShrink(windex);
@@ -867,7 +959,8 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
         });
       } else if (idx == 3) {
         //Load File
-        newElement.addEventListener("click", function() { expandSecMenu(svg,idx); document.getElementById("userfile").click(); closeSecondaryMenu(svg) });
+        // newElement.addEventListener("click", function() { expandSecMenu(svg,idx); document.getElementById("userfile").click(); closeSecondaryMenu(svg) });
+        newElement.addEventListener("touchend", function() { expandSecMenu(svg,idx); document.getElementById("userfile").click(); closeSecondaryMenu(svg) });
       } else if (idx == 5) {
         //Expand menu - sample
         var txt = document.getElementById("samples").options;
@@ -877,16 +970,21 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
         createExtendSec(svg,idx,txt,a1+a2*.5);
 
 
-        newElement.addEventListener("click", function(event) {
+        // newElement.addEventListener("click", function(event) {
+          // expandSecMenu(svg,event.target.idx);
+        // });
+        newElement.addEventListener("touchend", function(event) {          
           expandSecMenu(svg,event.target.idx);
         });
       } else if (idx == 6) {
         //Reset Code
         createExtendSec(svg,idx,["Confirm"],a1+a2*.5);
-        newElement.addEventListener("click", function() { expandSecMenu(svg,event.target.idx); });
+        // newElement.addEventListener("click", function() { expandSecMenu(svg,event.target.idx); });
+        newElement.addEventListener("touchend", function() { expandSecMenu(svg,event.target.idx); });
       } else if (idx == 7) {
         //Reset Output
-        newElement.addEventListener("click", function() { expandSecMenu(svg,idx); clearOutput(windex); closeSecondaryMenu(svg) });
+        // newElement.addEventListener("click", function() { expandSecMenu(svg,idx); clearOutput(windex); closeSecondaryMenu(svg) });
+        newElement.addEventListener("touchend", function() { expandSecMenu(svg,idx); clearOutput(windex); closeSecondaryMenu(svg) });
       } else if (idx == 8) {
         //View Errors
         newElement.setAttribute("class", "errorPie");
@@ -900,7 +998,12 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
           newElement.style.fill = "green";
         }
 
-        newElement.addEventListener("click", function() {
+        /* newElement.addEventListener("click", function() {
+          expandSecMenu(svg,idx);
+          indicatorDisplay(errorTiles2[windex].length,windex);
+          closeSecondaryMenu(svg);
+        }); */
+        newElement.addEventListener("touchend", function() {
           expandSecMenu(svg,idx);
           indicatorDisplay(errorTiles2[windex].length,windex);
           closeSecondaryMenu(svg);
@@ -915,8 +1018,12 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
     }
 
     if (c == -3) {
-      // newElement.addEventListener("click", function() { windowMenuClick(idx,c2); });
-    newElement.addEventListener("touchend", function() { windowMenuClick(idx,c2); });
+      // newElement.addEventListener("click", function(event) { windowMenuClick(idx,c2,event); });
+      newElement.addEventListener("touchstart", function(event) { wMenuTouchStart(event) });
+      newElement.addEventListener("touchmove", function(event) { wMenuTouchMove(event) });
+      newElement.addEventListener("touchend", function(event) { wMenuTouchEnd(event) });
+      newElement.idx = idx;
+      // newElement.addEventListener("touchend", function(event) { windowMenuClick(idx,c2,event); });
     }
 
     if (c == 2 || c == -3) {
@@ -959,14 +1066,15 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
     //Pie Outer Segment
     newElement.setAttribute("class",c);
     newElement.style.display = "none";
-    newElement.addEventListener("touchstart", function(event) { segmentDragStart(event); });
-    newElement.addEventListener("touchmove", function(event) { segmentDragMove(event); });
-    newElement.addEventListener("touchend", function(event) { segmentDragEnd(event); });
-    newElement.addEventListener('click', function(event) { pieExtendClick(tileList[event.target.tileIdx],event.target.parentNode,event); });
+    newElement.addEventListener("touchstart", function(event) { segmentDragStart(event,windex); });
+    newElement.addEventListener("touchmove", function(event) { segmentDragMove(event,windex); });
+    newElement.addEventListener("touchend", function(event) { segmentDragEnd(event,windex); });
+    // newElement.addEventListener("click", function(event) { pieExtendClick(tileList[event.target.tileIdx],event.target.parentNode,event); });
     newElement.tileIdx = idx2;
   } else if (c != -3) {
     newElement.setAttribute("idx", idx);
-    newElement.addEventListener("click", function(){ menuExtend(this.getAttribute("idx"),this); });
+    // newElement.addEventListener("click", function(){ menuExtend(this.getAttribute("idx"),this); });
+    newElement.addEventListener("touchend", function(){ menuExtend(this.getAttribute("idx"),this); });
   }
   svg.appendChild(newElement);
 }
@@ -975,7 +1083,7 @@ function expandSecMenu(svg, idx) {
   if (svg.idx != -1) {
     //Close expansion
     var txt = "sec" + svg.idx;
-    var m = document.getElementsByClassName(txt);
+    var m = svg.getElementsByClassName(txt);
     for (var i = 0; i < m.length;i++) {
       // m[i].parentNode.removeChild(m[i]);
       m[i].style.display = "none";
@@ -987,7 +1095,7 @@ function expandSecMenu(svg, idx) {
   if (idx == 0) {
     if (svg.idx != 0) {
       //Show dialect
-      var m = document.getElementsByClassName(txt);
+      var m = svg.getElementsByClassName(txt);
       for (var i = 0; i < m.length;i++) {
         m[i].style.display = "";
       }
@@ -998,7 +1106,7 @@ function expandSecMenu(svg, idx) {
   } else if (idx == 6) {
     if (svg.idx != 6) {
         //Show confirm delete
-      var m = document.getElementsByClassName(txt);
+      var m = svg.getElementsByClassName(txt);
       for (var i = 0; i < m.length;i++) {
         m[i].style.display = "";
       }
@@ -1009,7 +1117,7 @@ function expandSecMenu(svg, idx) {
   } else if (idx == 5) {
     if (svg.idx != 5) {
       //Show samples
-      var m = document.getElementsByClassName(txt);
+      var m = svg.getElementsByClassName(txt);
       for (var i = 0; i < m.length;i++) {
         m[i].style.display = "";
       }
@@ -1087,9 +1195,9 @@ function createSecondaryMenu(svg,id) {
   createCancelButton(svg,x0,y0);
 }
 
-function segmentDragStart(event) {
+function segmentDragStart(event,windex) {
   console.log("S Drag Start");
-  var menus = codearea.getElementsByClassName('popup-menu');
+  var menus = codearea2[windex].getElementsByClassName('popup-menu');
   // ???
   // if (currentFocus) {
     // currentFocus.blur();
@@ -1103,13 +1211,10 @@ function segmentDragStart(event) {
 
     if (!(id in pieMenuTouches)) {
       //New Touch Event
-      event.preventDefault();
-      var x = event.targetTouches[i].clientX;
-      var y = event.targetTouches[i].clientY;
+      event.preventDefault();      
+      var pos = positionCorrection([event.changedTouches[i].clientX,event.changedTouches[i].clientY],windex);        
 
-      segmentTouches[id] = {x:x, y:y, updates:0, ix:window.frameElement.offsetLeft, iy:window.frameElement.offsetTop};
-      segmentTouches[id].sx = event.targetTouches[i].screenX;
-      segmentTouches[id].sy = event.targetTouches[i].screenY;
+      segmentTouches[id] = {x:pos[0], y:pos[1], updates:0}      
       segmentTouches[id].tile = tileList[target.tileIdx];
       segmentTouches[id].svg = target.parentNode;
     }
@@ -1118,9 +1223,8 @@ function segmentDragStart(event) {
   event.preventDefault();
 }
 
-function segmentDragMove(event) {
-  console.log("S Drag Move: " + event.target + "," + (event.target == (codearea)));
-  if (!window.frameElement) { return; }
+function segmentDragMove(event,windex) {
+  console.log("S Drag Move: " + event.target + "," + (event.target == (codearea2[windex])));  
   for (var i = 0; i < event.changedTouches.length; i++) {
     var id = event.changedTouches[i].identifier;
     //Target is always the path element
@@ -1129,10 +1233,10 @@ function segmentDragMove(event) {
       //?
 
       //Distance check - create tile after some distance
-      if (!segmentTouches[id].ok) {
-        var x = event.changedTouches[i].clientX;
-        var y = event.changedTouches[i].clientY;
-        var dist = Math.sqrt(Math.pow(x - segmentTouches[i].x, 2) + Math.pow(y - segmentTouches[i].y, 2));
+      if (!segmentTouches[id].ok) {        
+        var pos = positionCorrection([event.changedTouches[i].clientX,event.changedTouches[i].clientY],windex);        
+        var dist = Math.sqrt(Math.pow(pos[0] - segmentTouches[i].x, 2) + Math.pow(pos[1] - segmentTouches[i].y, 2));
+        console.log("SegDrag: " + dist + ", " + segMoveThresholdDistance);
         if (dist > segMoveThresholdDistance) {
           //#TODO
           //Start Dragging Tile
@@ -1143,13 +1247,12 @@ function segmentDragMove(event) {
       }
       segmentTouches[id].updates++;
     }
-  }
-  moveCounter++;
+  }  
   event.preventDefault();
   // event.stopPropagation();
 }
 
-function segmentDragEnd(event) {
+function segmentDragEnd(event,windex) {
   console.log("S Drag End");
   for (var i = 0; i < event.changedTouches.length; i++) {
     var id = event.changedTouches[i].identifier;
@@ -1166,7 +1269,7 @@ function segmentDragEnd(event) {
           while (svg.tagName != "svg") {
             svg = svg.parentNode;
           }
-          pieExtendClick(segmentTouches[id].tile, svg, event.changedTouches[id]);
+          pieExtendClick(segmentTouches[id].tile, svg, event);
       }
     }
     delete segmentTouches[id];
@@ -1175,26 +1278,8 @@ function segmentDragEnd(event) {
 }
 
 
-
-
-
-
-function calcBoundingBox(xList,yList) {
-  var xMin = Number.MAX_VALUE;
-  var xMax = Number.MIN_VALUE;
-  var yMin = Number.MAX_VALUE;
-  var yMax = Number.MIN_VALUE;
-  for (var i = 0; i < xList.length; i++) {
-    if (xList[i] < xMin) { xMin = xList[i]; }
-    if (xList[i] > xMax) { xMax = xList[i]; }
-    if (yList[i] < yMin) { yMin = yList[i]; }
-    if (yList[i] > yMax) { yMax = yList[i]; }
-  }
-
-  return [(xMin + (xMax - xMin)*.5),(yMin + (yMax - yMin)*.5)];
-}
-
 function pieExtendClick(tile, svg, event) {
+  console.log("pieExtendClick: " + tile + ", " + svg + ", " + event + ", " + svg.windex);
   createTile(tile, svg, 0, 0, svg.windex);
   closePieMenu(event);
 }
@@ -1207,9 +1292,9 @@ function createTile(tile, svg, x, y, id) {
   }
   var xPoint, yPoint;
   if (svg) {
-    console.log("Tile: " + svg.xPoint + ", " + svg.yPoint + ", " + id);
+    console.log("Tile: " + svg.xPoint + ", " + svg.yPoint + ", " + id);    
     xPoint = svg.xPoint;
-    yPoint = svg.yPoint;
+    yPoint = svg.yPoint;    
   } else {
     console.log("Tile: " + x + ", " + y + ", " + id);
     xPoint = x;
@@ -1226,16 +1311,33 @@ function createTile(tile, svg, x, y, id) {
   }
   codearea2[id].appendChild(cl);
   cl.style.position = 'absolute';
-  cl.style.top = (codearea2[id].scrollTop + yPoint - tile.offsetWidth * 0.5) + "px";
-  cl.style.left = (xPoint - tile.offsetHeight * 0.5) + 'px';
+  var pos;
+  if (svg) {
+    pos = [xPoint,yPoint];
+  } else {
+    pos = positionCorrection([xPoint,yPoint],cl.windex);
+  }
+  // cl.style.top = (codearea2[id].scrollTop + yPoint - tile.offsetWidth * 0.5) + "px";
+  // cl.style.left = (xPoint - tile.offsetHeight * 0.5) + 'px';
+  cl.style.left = pos[0] + "px";
+  cl.style.top = pos[1] + "px";
   cl.style.display = "";
   attachTileBehaviour(cl);
-  tiles2[id].push(cl);
+  tiles2[id].push(cl);  
 
   if (!cl.next)
     cl.next = false;
   if (!cl.prev)
     cl.prev = false;
+  
+  //Timeout function to center new tile as width cannot be accessed until element has been drawn
+  cl.style.visibility = "hidden";
+  holes2[cl.windex] = codearea2[cl.windex].getElementsByClassName('hole');
+  setTimeout(function() {    
+    cl.style.left = cl.offsetLeft - cl.offsetWidth *.5 + 'px';
+    cl.style.top = cl.offsetTop - cl.offsetHeight *.5 + 'px';
+    cl.style.visibility = "";    
+  }, 5);
 }
 
 function createCancelButton(svg,x,y) {
@@ -1248,7 +1350,8 @@ function createCancelButton(svg,x,y) {
   newElement.style.fill = "black";
   newElement.style.fillOpacity = "0.9";
   svg.appendChild(newElement);
-  newElement.addEventListener("click", function(event){ closePieMenu(event); });
+  // newElement.addEventListener("click", function(event){ closePieMenu(event); });
+  newElement.addEventListener('touchend', function(event) { closePieMenu(event); });
   newElement.style.pointerEvents = "all";
   // newElement.addEventListener("touchend", function(){ closePieMenu(event); });
 
@@ -1261,7 +1364,8 @@ function createCancelButton(svg,x,y) {
   newElement.style.strokeWidth = 5;
   newElement.style.strokeOpacity = .5;
   svg.appendChild(newElement);
-  newElement.addEventListener("click", function(event){ closePieMenu(event); });
+  // newElement.addEventListener("click", function(event){ closePieMenu(event); });
+  newElement.addEventListener('touchend', function(event) { closePieMenu(event); });
   newElement.style.pointerEvents = "all";
   // newElement.addEventListener("touchend", function(){ closePieMenu(event); });
 
@@ -1274,12 +1378,15 @@ function createCancelButton(svg,x,y) {
   newElement.style.strokeWidth = 5;
   newElement.style.strokeOpacity = .5;
   svg.appendChild(newElement);
-  newElement.addEventListener("click", function(event){ closePieMenu(event); });
+  // newElement.addEventListener("click", function(event){ closePieMenu(event); });
+  newElement.addEventListener('touchend', function(event) { closePieMenu(event); });
   newElement.style.pointerEvents = "all";
   // newElement.addEventListener("touchend", function(){ closePieMenu(event); });
 }
 
 function menuExtend(n, tile) {
+  // console.log("Menu Extend");
+  // console.trace();
   var currentExtend =  tile.parentNode.getAttribute('idx') || -1;
   var svg = tile.parentNode; //??
 

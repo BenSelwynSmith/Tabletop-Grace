@@ -784,7 +784,7 @@ function findDefiniteValue(tile) {
 var overlaidError = document.createElement('div');
 overlaidError.classList.add('overlaid-error');
 document.body.appendChild(overlaidError);
-function overlayError(msg, relativeTo) {
+function overlayError(msg, relativeTo, windex) {
     var xy = findOffsetTopLeft(relativeTo);
     overlaidError.innerHTML = msg;
     xy.top -= relativeTo.offsetHeight + 10;

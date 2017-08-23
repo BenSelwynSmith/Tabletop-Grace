@@ -7,6 +7,7 @@ var pieMenuTouches = {};
 var windowTouches = {};
 var optTouches = {};
 var btnTouches = {};
+var segTouches = {};
 var windowMenuTouches = {};
 var segmentTouches = {};
 
@@ -15,6 +16,7 @@ var pieMenuMoveThresholdCount = 10;
 var pieMenuMoveThresholdDistance = 40;
 var tileMenuMoveThresholdDistance = 30;
 var wMenuThresholdDistance = 50;
+var wMenuMoveThresholdDistance = 20;
 var optMoveThresholdDistance = 2;
 var btnMoveThresholdDistance = 2;
 var segMoveThresholdDistance = 20;
@@ -77,15 +79,21 @@ function addPieTouch(i) {
   codearea2[i].addEventListener('touchstart', pieTouchStart);
   codearea2[i].addEventListener('touchmove', pieTouchMove);
   codearea2[i].addEventListener('touchend', pieTouchEnd);
-  // aceContent.addEventListener('touchstart', pieTouchStart);
-  // aceContent.addEventListener('touchmove', pieTouchMove);
-  // aceContent.addEventListener('touchend', pieTouchEnd);
-  // codearea.addEventListener('click', function(event) {
+  editor4[i].addEventListener('touchstart', pieTouchStart);
+  editor4[i].addEventListener('touchmove', pieTouchMove);
+  editor4[i].addEventListener('touchend', pieTouchEnd);
+  // codearea.addEventListener("click", function(event) {
     // showPieMenu(event.pageX, event.pageY);
   // });
   codearea2[i].t1 = codearea2[i].t2 = null;
 }
 
+function addPieMenuTouch(seg, func) {
+  seg.addEventListener('touchstart', segTouchStart);
+  seg.addEventListener('touchmove', segTouchMove);
+  seg.addEventListener('touchend', segTouchEnd);
+  seg.func = func;
+}
 
 function addOptTouch(opt, func) {
   opt.addEventListener('touchstart', optTouchStart);
@@ -106,7 +114,7 @@ function addWMenuTouch() {
   windowarea = document.getElementById("windowarea");
   windowarea.style.pointerEvents = "none";
   var blank = document.getElementById("blank");
-  blank.addEventListener('click', function(event) { event.preventDefault(); });
+  // blank.addEventListener("click", function(event) { event.preventDefault(); });
   blank.addEventListener('touchstart', function(event) { event.preventDefault(); });
   blank.addEventListener('touchmove', function(event) { event.preventDefault(); });
   blank.addEventListener('touchend', function(event) { event.preventDefault(); });
@@ -118,7 +126,7 @@ function addWMenuTouch() {
     elem.addEventListener('touchstart', function(event) { event.preventDefault(); });
     elem.addEventListener('touchmove', function(event) { event.preventDefault(); });
     elem.addEventListener('touchend', function(event) { wMenuEnd(event); });
-    // elem.addEventListener('click', function(event) { showWindowMenu2(event); event.preventDefault(); });
+    // elem.addEventListener("click", function(event) { showWindowMenu2(event); event.preventDefault(); });
     elem.style.pointerEvents = "all";
   }
 }
@@ -167,7 +175,7 @@ function btnTouchEnd(event) {
   }
 }
 
-function wMenuStart(event,idx) {
+/* function wMenuStart(event,idx) {
   event.preventDefault();
   // var idx = ((event.target.getAttribute("id").split("_"));
   var target = event.target;
@@ -209,7 +217,7 @@ function wMenuMove(event) {
     }
 
   }
-}
+} */
 
 function wMenuEnd(event) {
   // console.log("wMenuEnd");
@@ -265,7 +273,48 @@ function wMenuCheck(touchEvent, wMenuTouch) {
   return success;
 }
 
+function segTouchStart(event) {
+  for (var i = 0; i < event.targetTouches.length; i++) {
+    var id = event.targetTouches[i].identifier;
 
+    if (!(id in segTouches)) {
+      //New Touch Event
+      event.preventDefault();
+      var x = event.targetTouches[i].clientX;
+      var y = event.targetTouches[i].clientY;
+
+      segTouches[id] = {x:x, y:y, target:event.target};
+    }
+  }
+}
+
+function segTouchMove(event) {
+  for (var i = 0; i < event.changedTouches.length; i++) {
+    var id = event.changedTouches[i].identifier;
+    if (!(id in segTouches)) { continue; }
+    if (segTouches[id].target == event.target && id in segTouches) {
+      //Distance check
+      var x = event.changedTouches[i].clientX;
+      var y = event.changedTouches[i].clientY;
+      var dist = Math.sqrt(Math.pow(x - segTouches[i].x, 2) + Math.pow(y - segTouches[i].y, 2));
+      if (dist > segMoveThresholdDistance) {
+        delete segTouches[id];
+        continue;
+      }
+    }
+  }
+}
+
+function segTouchEnd(event) {
+  for (var i = 0; i < event.changedTouches.length; i++) {
+    var id = event.changedTouches[i].identifier;
+    if (!(id in segTouches)) { continue; }
+    if (segTouches[id].target == event.target && id in segTouches) {
+      event.target.func(event);
+    }
+    delete segTouches[id];
+  }
+}
 
 function optTouchStart(event) {
   for (var i = 0; i < event.targetTouches.length; i++) {
@@ -310,28 +359,96 @@ function optTouchEnd(event) {
   }
 }
 
+function wMenuTouchStart(event) {
+  // console.log('wMenuTouchStart: ' + event.target);
+  for (var i = 0; i < event.targetTouches.length; i++) {
+    var id = event.targetTouches[i].identifier;
+    
+    if (!(id in windowMenuTouches)) {
+      //New Touch Event
+      event.preventDefault();
+      var x = event.targetTouches[i].clientX;
+      var y = event.targetTouches[i].clientY;
+
+      windowMenuTouches[id] = {x:x, y:y, target:event.target, ts:Date.now()};
+    }
+  }
+}
+
+function wMenuTouchMove(event) {
+  for (var i = 0; i < event.changedTouches.length; i++) {
+    var id = event.changedTouches[i].identifier;
+    if (!(id in windowMenuTouches)) { continue; }
+    if (windowMenuTouches[id].target == event.target && id in windowMenuTouches) {
+      //Distance check
+      var x = event.changedTouches[i].clientX;
+      var y = event.changedTouches[i].clientY;
+      var dist = Math.sqrt(Math.pow(x - windowMenuTouches[id].x, 2) + Math.pow(y - windowMenuTouches[id].y, 2));
+      if (dist > wMenuMoveThresholdDistance) {
+        delete windowMenuTouches[id];
+        console.log(id + " wMenuTouchMove delete");
+        continue;
+      }
+    }
+  }
+}
+
+function wMenuTouchEnd(event) {
+  for (var i = 0; i < event.changedTouches.length; i++) {
+    var id = event.changedTouches[i].identifier;
+    if (!(id in windowMenuTouches)) { continue; }
+    var timeDif = Date.now() - windowMenuTouches[id].ts;    
+    if (timeDif > shortPress) {
+      windowMenuClick(windowMenuTouches[id].target.idx,windowMenuTouches[id].target.parentNode.idx,2);
+    } else {
+      windowMenuClick(windowMenuTouches[id].target.idx,windowMenuTouches[id].target.parentNode.idx,1);
+    }    
+    
+    delete windowMenuTouches[id];
+  }
+}
+
 function pieTouchStart(event) {
+  if (event.target.style.display == "none") { return; }
+  if (!event.target.classList.contains('codearea') && !event.target.classList.contains('ace_content')) { return; }  
   var s = "Touches: ";
+  var windex = event.target.windex;
+  if (windex) {
+    var tt = event.target.parentNode;    
+    while (tt != null ) {
+      windex = tt.windex;      
+      tt = tt.parentNode;
+      if (windex) { break; }
+    }
+  }    
+  
+  
+  // var t = event.target.parentNode;
+  // while (!windex) {
+    // windex = t.windex;
+    // t = t.parentNode;
+  // }
+  console.log("pieTouchStart: " + event.target + ", " + windex);
   for (var i = 0; i < event.touches.length; i++) {
     s += event.touches[i].identifier + " ";
   }
   console.log(s);
 
   event.preventDefault();
-  var menus = codearea.getElementsByClassName('popup-menu');
+  var menus = codearea2[windex].getElementsByClassName('popup-menu');
   if (menus.length) {
     for (var i=0; i<menus.length; i++) {
-      codearea.removeChild(menus[i]);
+      codearea2[windex].removeChild(menus[i]);
       return;
     }
   }
 
-  window.parent.bringToFront(window.frameElement);
+  // window.parent.bringToFront(window.frameElement);
 
-  if (currentFocus) {
-    currentFocus.blur();
-    currentFocus = null;
-  }
+  // if (currentFocus) {
+    // currentFocus.blur();
+    // currentFocus = null;
+  // }
 
   for (var i = 0; i < event.targetTouches.length; i++) {
     var id = event.targetTouches[i].identifier;
@@ -342,35 +459,30 @@ function pieTouchStart(event) {
       var x = event.targetTouches[i].clientX;
       var y = event.targetTouches[i].clientY;
 
-      pieMenuTouches[id] = {x:x, y:y, updates:0, ix:window.frameElement.offsetLeft, iy:window.frameElement.offsetTop};
-      pieMenuTouches[id].sx = event.targetTouches[i].screenX;
-      pieMenuTouches[id].sy = event.targetTouches[i].screenY;
+      pieMenuTouches[id] = {x:x, y:y, updates:0}
+      //ix:window.frameElement.offsetLeft, iy:window.frameElement.offsetTop};
+      // pieMenuTouches[id].sx = event.targetTouches[i].clientX;
+      // pieMenuTouches[id].sy = event.targetTouches[i].clientY;
       pieMenuTouches[id].id = id;
-
-
-
-      /*if (codearea.t1 == null && (codearea.t2 != null || codearea.t2 != id)) {
-        codearea.t1 = id;
-      } else if (codearea.t2 == null && (codearea.t1 != null || codearea.t1 != id)) {
-        codearea.t2 = id;
-      }*/
+      pieMenuTouches[id].windex = windex;
 
     }
   }
   // event.preventDefault();
-  console.log("Start: " + codearea.t1 + "," + codearea.t2);
+  // console.log("Start: " + codearea.t1 + "," + codearea.t2);
 }
 
 function pieTouchMove(event) {
-  event.preventDefault();
-  if (!window.frameElement) { return; }
+  if (event.target.style.display == "none") { return; }
+  if (!event.target.classList.contains('codearea') && !event.target.classList.contains('ace_content')) { return; }
+  event.preventDefault();    
   for (var i = 0; i < event.changedTouches.length; i++) {
     var id = event.changedTouches[i].identifier;
-    if (event.target == codearea && id in pieMenuTouches) {
+    if (id in pieMenuTouches) {
       console.log("Move: " + id);
       if (pieMenuTouches[id].dying) {
         continue;
-      }
+      }      
       //Moves check - Number of updates since this touch began
       if (pieMenuTouches[id].updates > pieMenuMoveThresholdCount) {
         // console.log("ID M: " + id + "is dying");
@@ -379,6 +491,7 @@ function pieTouchMove(event) {
         continue;
       }
 
+      var windex = pieMenuTouches[id].windex;
       //Distance check
       var x = event.changedTouches[i].clientX;
       var y = event.changedTouches[i].clientY;
@@ -387,20 +500,20 @@ function pieTouchMove(event) {
         windowTouches[id] = pieMenuTouches[id];
         delete pieMenuTouches[id];
 
-        if (codearea.t1 == codearea.t2 == null) {
-          codearea.t1 = id;
-        } else if (codearea.t1 == null) {
-          if (codearea.t2 != id) {
-            codearea.t1 = id;
+        if (codearea2[windex].t1 == codearea2[windex].t2 == null) {
+          codearea2[windex].t1 = id;
+        } else if (codearea2[windex].t1 == null) {
+          if (codearea2[windex].t2 != id) {
+            codearea2[windex].t1 = id;
           }
-        } else if (codearea.t2 == null) {
-          if (codearea.t1 != id) {
-            codearea.t2 = id;
+        } else if (codearea2[windex].t2 == null) {
+          if (codearea2[windex].t1 != id) {
+            codearea2[windex].t2 = id;
           }
         }
 
-        if (codearea.t2 == codearea.t1) {
-          codearea.t2 = null;
+        if (codearea2[windex].t2 == codearea2[windex].t1) {
+          codearea2[windex].t2 = null;
         }
 
         continue;
@@ -409,143 +522,62 @@ function pieTouchMove(event) {
       pieMenuTouches[id].updates++;
     }
   }
-
-  if (codearea.t1 != null && codearea.t2 != null) {
-    //Rotation and scaling
-    var touch1;
-    var touch2;
-    var touch11;
-    var touch21;
-    var id1;
-    var id2;
-    console.log("SR");
-
-    //Find touches
-    for (var i = 0; i < event.touches.length; i++) {
-      if (event.touches[i].identifier == codearea.t1) {
-        touch1 = event.touches[i];
-        id1 = event.touches[i].identfier;
-      }
-      if (event.touches[i].identifier == codearea.t2) {
-        touch2 = event.touches[i];
-        id2 = event.touches[i].identfier;
-      }
-    }
-
-    // console.log("SR - T11: " + touch11 + ", T21: " + touch21);
-    // console.log("SR: eventTouches: " + event.touches.length + ", windowTouches: " + windowTouches);
-
-
-    if (touch1 != null && touch2 != null) {
-      // var p1 = [touch1.clientX,touch1.clientY];
-      // var p2 = [touch2.clientX,touch2.clientY];
-      // console.log("SR0: " + v1[0] + "," + v1[1] + " - " + v2[0] + "," + v2[1]);
-
-      
-      if (lastUpdate) {
-        var v = [];      
-        v[0] = [touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY];
-        v[1] = [lastUpdate.touch2.clientX - lastUpdate.touch1.clientX, lastUpdate.touch2.clientY - lastUpdate.touch1.clientY];
-        v[2] = [touch1.clientX - lastUpdate.touch1.clientX, touch1.clientY - lastUpdate.touch1.clientY];
-        v[3] = [touch2.clientX - lastUpdate.touch2.clientX, touch2.clientY - lastUpdate.touch2.clientY];
-        
-
-        var vm = [];      
-        for (var i = 0; i < 4; i++) {
-          vm[i] = Math.sqrt(Math.pow(v[i][0],2) + Math.pow(v[i][1],2));
-        }
-
-        var vd12 = v[0][0] * v[1][0] + v[0][1] * v[1][1];
-        var vd34 = v[2][0] * v[3][0] + v[2][1] * v[3][1];
-        
-        var a1 = toDeg * Math.atan2(v[0][1],v[0][0]);
-        var a2 = toDeg * Math.atan2(v[1][1],v[1][0]);
-        var a3 = toDeg * Math.atan2(v[2][1],v[2][0]);
-        var a4 = toDeg * Math.atan2(v[3][1],v[3][0]);
-        
-        // var va12 = Math.acos(vd12 / (vm[0] * vm[1]));
-        // var va34 = Math.acos(vd34 / (vm[2] * vm[3]));
-
-        var v3m = (Math.abs(v[2][0] + v[2][1]) > moveThresh);
-        var v4m = (Math.abs(v[3][0] + v[3][1]) > moveThresh);
-
-        console.log("Move: " + v3m + ", " + v4m);
-        // console.log("Angle: " + va12 + ", " + va34);
-        console.log("Angle : " + a1 + ", " + a2 + ", " + (a2 - a1));
-        console.log("Angle2: " + a3 + ", " + a4 + ", " + (a4 - a3));
-        
-        // var done = 0;
-        // if (v3m && v4m) {
-          // Dragging
-          // if (Math.abs(va34) < sameDirThresh) {
-            // Perform Dragging
-            // console.log("Drag");
-            // return;
-          // }
-        // } 
-
-        // if (!done && (v3m || v4m)) {
-          // if (Math.abs(va12) > rotateMinThresh) {
-            // console.log("Rotate");
-            // return;
-          // }
-        // }
-        // if (!done) { 
-          // console.log("Other");
-        // }
-        
-      }
-      lastUpdate = {
-        touch1 : {clientX: touch1.clientX, clientY: touch1.clientY},
-        touch2 : {clientX: touch2.clientX, clientY: touch2.clientY}
-      }
-    }
-  }
 }
 
 function pieTouchEnd(event) {
-
+  if (event.target.style.display == "none") { return; }
+  // console.log("PieTouchEnd");  
+  if (!event.target.classList.contains('codearea') && !event.target.classList.contains('ace_content')) { return; }
   for (var i = 0; i < event.changedTouches.length; i++) {
     var id = event.changedTouches[i].identifier;
-    console.log("End Touch: " + id + "," + codearea.t1 + "," + codearea.t2 + "," + (codearea.t1 == id) + "," + (codearea.t2 == id));
+    // console.log("End Touch: " + id + "," + codearea.t1 + "," + codearea.t2 + "," + (codearea.t1 == id) + "," + (codearea.t2 == id));
+    var windex;
     if (id in pieMenuTouches) {
       if (pieMenuTouches[id].dying) {
         continue;
-      }
+      }      
       pieMenuTouches[id].dying = 1;
-      console.log("ID E: " + id + "is dying");
-      window.setTimeout(pieTouchDelayedEnd, pieMenuEndDelay, id);
-      continue;
+      // console.log("ID E: " + id + "is dying");
+      window.setTimeout(pieTouchDelayedEnd, pieMenuEndDelay, id, (event.target.classList.contains('ace_content')));
+      windex = pieMenuTouches[id].windex;
+      // continue;
     } else if (id in windowTouches) {
+      windex = windowTouches[id].windex;
       delete windowTouches[id];
     }
-    if (id == codearea.t1) { codearea.t1 = null; lastUpdate = null; }
-    if (id == codearea.t2) { codearea.t2 = null; lastUpdate = null; }
-    console.log("End Touch2: " + id + "," + codearea.t1 + "," + codearea.t2 + "," + (codearea.t1 == id) + "," + (codearea.t2 == id));
+    
+    if (windex != null) {
+      if (id == codearea2[windex].t1) { codearea2[windex].t1 = null; lastUpdate = null; }
+      if (id == codearea2[windex].t2) { codearea2[windex].t2 = null; lastUpdate = null; }
+    }
+    
+    // console.log("End Touch2: " + id + "," + codearea.t1 + "," + codearea.t2 + "," + (codearea.t1 == id) + "," + (codearea.t2 == id));
   }
   event.preventDefault();
 }
 
-function pieTouchDelayedEnd(id) {
+function pieTouchDelayedEnd(id,t) {
   // console.log("DelayEnd: " + id);
   if (!(id in pieMenuTouches)) { return; }
   if (pieMenuTouches[id].done) { delete pieMenuTouches[id]; return; }
-
+  var windex = pieMenuTouches[id].windex;
   var p1 = [pieMenuTouches[id].x,pieMenuTouches[id].y];
   //Sec menu
   var count = 0;
   for (var i in pieMenuTouches) {
     var p2 = [pieMenuTouches[i].x,pieMenuTouches[id].y];
-    var dist = Math.sqrt(Math.pow(p2[0] - p1[0], 2) + Math.pow(p2[1] - p1[1], 2));
+    
     // console.log("DelayEnd: " + id + ", Dist:" + (dist < secMenuDistance) + ", oid: " + i + ", done: " +
-        // pieMenuTouches[i].done + ", dying: " + pieMenuTouches[i].dying);
+        // pieMenuTouches[i].done + ", dying: " + pieMenuTouches[i].dying);    
     if (pieMenuTouches[i].id == id) { continue; }
     if (pieMenuTouches[i].done) { continue; }
     if (!pieMenuTouches[i].dying) { continue; }
-
+    if (pieMenuTouches[i].windex != windex) { continue; }
+    
+    var dist = Math.sqrt(Math.pow(p2[0] - p1[0], 2) + Math.pow(p2[1] - p1[1], 2));
     if (dist < secMenuDistance) {
       // console.log("showSecMenu");
-      showSecMenu(p1[0] + (p2[0] - p1[0]) * .5,p1[1] + (p2[1] - p1[1]) * .5);
+      showSecMenu(p1[0] + (p2[0] - p1[0]) * .5,p1[1] + (p2[1] - p1[1]) * .5, windex);
       delete pieMenuTouches[id];
       delete pieMenuTouches[i];
       return;
@@ -554,10 +586,13 @@ function pieTouchDelayedEnd(id) {
   }
   // console.log("PieTouchDelayEnd: " + id + ", " + count);
 
-  //Pie menu
-  if (currentView == 0) {
-    showPieMenu(p1[0],p1[1]);
+  //Pie menu  
+  if (t) {
+    showKeyboard(pieMenuTouches[id].target, 1, windex);
+  } else {
+    showPieMenu(p1[0],p1[1],windex);
   }
+  
   delete pieMenuTouches[id];
 }
 
@@ -609,6 +644,7 @@ function addTileTouch(id) {
 function tileTouchStart(event) {
   event.stopPropagation();
   event.preventDefault();
+  
   for (var i = 0; i < event.targetTouches.length; i++) {
     var target = event.targetTouches[i].target;
     var id = event.targetTouches[i].identifier;
@@ -618,23 +654,24 @@ function tileTouchStart(event) {
     while (!tileTarget.classList.contains("tile")) {
       tileTarget = tileTarget.parentNode;
     }
+    var windex = tileTarget.windex;
 
     tileBringToFront(tileTarget);
 
     //New Touch Event
     if (!(id in touches)) {
-
-
-
-      event.preventDefault();
       var xy = findOffsetTopLeft(tileTarget);
       var x = event.targetTouches[i].clientX - xy.left;
       var y = event.targetTouches[i].clientY - xy.top;
+      var pos = positionCorrection([x,y],windex);
+      var x2 = xy.left - pos[0];
+      var y2 = xy.top - pos[1];
+      // console.log("TTS: " + xy.left + ", " + xy.top + ", " + x2 + ", " + y2 + ", " + x + ", " + y);
 
 
 
        touches[id] = {x:(event.targetTouches[i].clientX - xy.left), y:(event.targetTouches[i].clientY - xy.top),
-          target:target, hasContinue:0, updates:0, xy: xy, ts:Date.now(), tile:tileTarget, ox: event.targetTouches[i].clientX, oy: event.targetTouches[i].clientY  };
+          target:target, hasContinue:0, windex:windex, xy: xy, ts:Date.now(), tile:tileTarget, ox: event.targetTouches[i].clientX, oy: event.targetTouches[i].clientY  };
       console.log("New Touch: " + id + ", " + touches[id].x + ", " + touches[id].y + ", " + touches[id].target + ", " + touches[id].hasContinue
         + ", " + touches[id].xy  + ", " + touches[id].ts + ", " + touches[id].tile);
     }
@@ -644,44 +681,24 @@ function tileTouchStart(event) {
 function tileTouchMove(event) {
   event.stopPropagation();
   event.preventDefault();
-  for (var i = 0; i < event.changedTouches.length; i++) {
+  for (var i = 0; i < event.targetTouches.length; i++) {
     var target = event.targetTouches[i].target;
     var id = event.targetTouches[i].identifier;
     console.log("TileTouchMove: " + id);
     if (!(id in touches)) { continue; }
+    var windex = touches[id].windex;
     if (!touches[id].hasContinue) {
       //Moves check - Number of updates since this touch began
       var timeDif = Date.now() - touches[id].ts;
 
-
-      // var varTile = touches[id].tile.classList.contains('var');
-      // var inputTile = touches[id].target.tagName.toUpperCase() == "INPUT";
-
-
-
-      // if (timeDif > shortPress) {
-        // if (!varTile && !inputTile) {
-          // console.log(">shortPress");
-          // touches[id].hasContinue = 1;
-        // }
-        // if (timeDif > longPress) {
-          // if (varTile || inputTile) {
-            // console.log(">longPress");
-            // touches[id].hasContinue = 1;
-          // }
-        // }
-      // }
-
       //Distance check
-      // if (!touches[id].hasContinue) {
-        var x = event.changedTouches[i].clientX;
-        var y = event.changedTouches[i].clientY;
-        var dist = Math.sqrt(Math.pow(x - touches[id].ox, 2) + Math.pow(y - touches[id].oy, 2));
-        if (dist > tileMenuMoveThresholdDistance) {
-          touches[id].hasContinue = 1;
-          console.log(">distance: " + dist);
-        }
-      // }
+      var x = event.targetTouches[i].clientX;
+      var y = event.targetTouches[i].clientY;
+      var dist = Math.sqrt(Math.pow(x - touches[id].ox, 2) + Math.pow(y - touches[id].oy, 2));
+      if (dist > tileMenuMoveThresholdDistance) {
+        touches[id].hasContinue = 1;
+        console.log(">distance: " + dist);
+      }
     }
 
     target = touches[id].tile;
@@ -693,7 +710,7 @@ function tileTouchMove(event) {
 
       //If tile is in another tile
       var originalHole = null;
-      if (parent != codearea) {
+      if (parent != codearea2[windex]) {
           originalHole = parent;
           originalHole.style.width = originalHole.offsetWidth + 'px';
           originalHole.style.height = originalHole.offsetHeight + 'px';
@@ -717,9 +734,10 @@ function tileTouchMove(event) {
       } else if (tmp.prev) {
           tmp.prev.next = false;
       }
-      while (tmp && parent != codearea) {
+      while (tmp && parent != codearea2[windex]) {
           parent.removeChild(tmp);
-          codearea.appendChild(tmp);
+          codearea2[windex].appendChild(tmp);
+          tiles2[windex].push(tmp);
           tmp.style.position = 'absolute';
           tmp.style.top = runningTop + 'px';
           tmp.style.left = xy.left + 'px';
@@ -758,14 +776,14 @@ function tileTouchMove(event) {
 
     if (touches[id].hasContinue == 2) {
       //Continue Drag
-      var top = (event.changedTouches[i].clientY - touches[id].y);
-      var left = (event.changedTouches[i].clientX - touches[id].x);
+      var top = (event.targetTouches[i].clientY - touches[id].y);
+      var left = (event.targetTouches[i].clientX - touches[id].x);
       target.style.top = top + 'px';
       target.style.left = left + 'px';
       
 
-      top += codearea.scrollTop;
-      left += codearea.scrollLeft;
+      top += codearea2[windex].scrollTop;
+      left += codearea2[windex].scrollLeft;
       // var bestHole = findHole(target,touches[id].x,touches[id].y,left,top,true);
       var l2 = target.offsetLeft + target.offsetWidth * .5;
       var r2 = l2;
@@ -773,7 +791,7 @@ function tileTouchMove(event) {
       var b2 = t2;
       // var r2 = target.offsetLeft + target.offsetWidth * .5;
       // var b2 = target.offsetTop + markerHeight * 0.2;
-      var bestHole = findHole(target, l2, t2, r2, b2, true);
+      var bestHole = findHole(target, l2, t2, r2, b2, true, windex);
 
 
       if (bestHole != null && bestHole.children.length == 0) {
@@ -781,7 +799,7 @@ function tileTouchMove(event) {
           var reason = {};
           if (!holeCanHoldTile(bestHole, target, reason)) {
               bestHole.style.background = 'pink';
-              overlayError(reason.error, bestHole);
+              overlayError(reason.error, bestHole, windex);
           }
       }
 
@@ -794,9 +812,9 @@ function tileTouchMove(event) {
       }
 
 
-      for (var i=0; i<tiles.length; i++) {
+      for (var i=0; i<tiles2[windex].length; i++) {
         // console.log("IsBottomTarget Call: " + ch + ", " + target);
-        var ch = tiles[i];
+        var ch = tiles2[windex][i];
         if (ch.classList.contains('dragging')) { continue; }
         if (ch == target)
             continue;
@@ -811,22 +829,7 @@ function tileTouchMove(event) {
   }
 }
 
-/*f (touches[id].target.classList.contains('var')) {
-        if (timeDif < shortPress) {
-          popupVarMenu(event);
-          delete touches[id];
-          continue;
-        }
-      }
 
-      if (touches[id].target.tagName.toUpperCase() == "INPUT") {
-
-        target.focus();
-        // target.value = target.value;
-        currentFocus = target;
-
-        continue;
-      }*/
 
 function tileTouchEnd(event) {
   //For touch end only changed touches show up,
@@ -835,7 +838,8 @@ function tileTouchEnd(event) {
   for (var i = 0; i < event.changedTouches.length; i++) {
     var id = event.changedTouches[i].identifier;
     if (!(id in touches)) { continue; }
-    console.log("TileTouchEnd: " + id + ", hasContinue: " + touches[id].hasContinue);
+    var windex = touches[id].windex;
+    // console.log("TileTouchEnd: " + id + ", hasContinue: " + touches[id].hasContinue);
     var target = touches[id].target;
     var top = (event.changedTouches[i].clientY - touches[id].y);
     var left = (event.changedTouches[i].clientX - touches[id].x);
@@ -858,8 +862,8 @@ function tileTouchEnd(event) {
           target.focus();
           currentFocus = target;
           // target.value = target.value;
-          target.selectionStart = target.selectionEnd = target.value.length;
-          showKeyboard(target);
+          target.selectionStart = target.selectionEnd = target.value.length;          
+          showKeyboard(target,0,windex);
           delete touches[id];
           continue;
         } else if (touches[id].tile.classList.contains('tile')) {
@@ -890,8 +894,8 @@ function tileTouchEnd(event) {
     target.style.top = top + 'px';
     target.style.left = left + 'px';
 
-    top += codearea.scrollTop;
-    left += codearea.scrollLeft;
+    top += codearea2[windex].scrollTop;
+    left += codearea2[windex].scrollLeft;
     target.classList.remove('selected');
     target.classList.remove('dragging');
     removePointer(target);
@@ -916,7 +920,7 @@ function tileTouchEnd(event) {
     var b2 = t2;
       // var r2 = target.offsetLeft + target.offsetWidth * .5;
       // var b2 = target.offsetTop + markerHeight * 0.2;
-    var bestHole = findHole(target, l2, t2, r2, b2,false);
+    var bestHole = findHole(target, l2, t2, r2, b2,false,windex);
 
     console.log("End - Best: " + bestHole + ", " + touches[id].x + "," + touches[id].y + " - " + left + "," + top);
     console.log("End get: " + touches[id].x + "," + touches[id].y + "," + touches[id].target + "," + touches[id].hasContinue);
@@ -927,17 +931,24 @@ function tileTouchEnd(event) {
         var tmp = target;
         while (tmp) {
           tmp.style.top = 0;
-          tmp.style.left = 0;
+          tmp.style.left = 0;          
           tmp.style.position = 'static';
+          if (tmp.parentNode == codearea2[windex]) {
+            // tiles2[windex].remove(tmp);
+            // delete tiles2[windex][tiles2[windex].indexOf(tmp)];
+            
+          }
           bestHole.appendChild(tmp);
+          tiles2[windex].splice(tiles2[windex].indexOf(tmp), 1);
           tmp = tmp.next;
         }
       } else {
         bestHole = null;
       }
     }
-    for (var i=0; i<tiles.length; i++) {
-      var ch = tiles[i];
+    for (var i=0; i<tiles2[windex].length; i++) {            
+      var ch = tiles2[windex][i];
+      if (!ch) { continue; }
       ch.classList.remove('bottom-join-target');
       // console.log("IsBottomTarget Call:" + ch + ", " + target);
       if (bestHole) { continue; }
@@ -961,7 +972,7 @@ function tileTouchEnd(event) {
           var last = tmp;
           tmp = tmp.next;
           if (tmp == after)
-            break;
+            break;          
           tmp.parentElement.removeChild(tmp);
           pe.insertBefore(tmp, after);
           if (pe.classList.contains('multi')) {
@@ -972,7 +983,7 @@ function tileTouchEnd(event) {
           tmp.style.top = (last.offsetTop + last.offsetHeight) + 'px';
           tmp.style.left = last.offsetLeft + 'px';
         }
-        if (after && pe != codearea) {
+        if (after && pe != codearea2[windex]) {
           last.next = after;
           after.prev = last;
         }
@@ -984,24 +995,25 @@ function tileTouchEnd(event) {
       touches[id].originalHole.style.height = 'auto';
     }
     runOnDrop(target);
-    reflow();
-    updateTileIndicator();
-    generateCode();
-    checkpointSave();
+    reflow(windex);
+    updateTileIndicator(windex);
+    generateCode(windex);
+    checkpointSave(windex);
     delete touches[id];
   }
 }
 
 // function findHole(target,x,y,left,top,b) {
-function findHole(target, left, top, right, bottom, b) {
+function findHole(target, left, top, right, bottom, b, windex) {
   var holeSize = 1000000;
   var bestHole = null;
   var bestIdx = -1;
+  // var holes = codearea2[windex].getElementByClassName('hole');
+  
 
-
-  for (var i=holes.length - 1; i>=0; i--) {
+  for (var i=holes2[windex].length - 1; i>=0; i--) {
     // console.log("ChildNodes: " + holes[i].childNodes.length);
-    var h = holes[i];
+    var h = holes2[windex][i];
     if (h.childNodes.length) { continue; }
     if (b) {
       h.style.background = '';
@@ -1009,8 +1021,8 @@ function findHole(target, left, top, right, bottom, b) {
     if (h.offsetParent == target)
       continue;
     var xy = findOffsetTopLeft(h);
-    xy.top = xy.top + codearea.offsetTop;
-    xy.left = xy.left + codearea.offsetLeft;
+    xy.top = xy.top + codearea2[windex].offsetTop;
+    xy.left = xy.left + codearea2[windex].offsetLeft;
     console.log("Tile: " + left + ", " + top + ", " + right + ", " + bottom);
     console.log("Hole: " + xy.left + ", " + xy.top + ", " + (xy.left + h.offsetWidth) + ", " + (xy.top + h.offsetHeight));
 

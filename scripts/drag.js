@@ -75,13 +75,13 @@ function runOnDrop(tile) {
         }
     }
 }
-function reflow() {
-    for (var i=0; i<tiles.length; i++) {
-        if (tiles[i].parentNode != codearea)
+function reflow(id) {
+    for (var i=0; i<tiles2[id].length; i++) {
+        if (tiles2[id][i].parentNode != codearea2[id])
             continue;
-        if (tiles[i].prev)
+        if (tiles2[id][i].prev)
             continue;
-        var tmp = tiles[i];
+        var tmp = tiles2[id][i];
         var runningTop = +tmp.style.top.substring(0, tmp.style.top.length - 2);
         var left = tmp.style.left;
         while (tmp) {

@@ -6,14 +6,14 @@ var indicator = document.getElementById('indicator');
 var hideCategoryBar = false;
 // var bgMinigrace = new Worker("scripts/background.js");
 var bgMinigrace2 = [];
-var indListener;
+var indListener = [];
 el.style.cssText = 'pointer-events: auto';
 supportsPointerEvents = (el.style.pointerEvents == 'auto');
 // Array.prototype.forEach.call(codearea.getElementsByClassName('tile'),
         // attachTileBehaviour);
 Array.prototype.forEach.call(toolbox.getElementsByClassName('tile'),
         attachToolboxBehaviour);
-// codearea.addEventListener('click', function(ev) {
+// codearea.addEventListener("click", function(ev) {
     // Two cases according to whether the event target is considered the
     // span itself or the text node inside it.
     // if (ev.target.classList && ev.target.classList.contains('var-name'))
@@ -45,12 +45,12 @@ function indicatorDisplay(b,id) {
         overlays2[id].style.display = 'block';
     }
     var c = overlays2[id];
-    if (!indListener) {
-      desaturator2[id].addEventListener("click",function() { indicatorDisplay(0,id); });
+    if (!indListener[id]) {
+      // desaturator2[id].addEventListener("click",function() { indicatorDisplay(0,id); });
       desaturator2[id].addEventListener("touchstart",function(evt) { evt.stopPropagation(); });
       desaturator2[id].addEventListener("touchmove",function(evt) { evt.stopPropagation(); });
       desaturator2[id].addEventListener("touchend",function(evt) { evt.stopPropagation(); evt.preventDefault(); indicatorDisplay(0,id); });
-      indListener = 1;
+      indListener[id] = 1;
     }
     var ctx = c.getContext('2d');
     ctx.font = "9pt sans-serif";
@@ -77,12 +77,12 @@ function indicatorDisplay(b,id) {
         ctx.restore();
         tiles[i].classList.add('highlight');
         var t = tiles[i];
-        while (true) {
-          t = t.parentNode;
+        while (true) {          
           if (!t) { break; }
           if (t.classList.contains("codearea")) { break; }
           t.oldZ = t.style.zIndex;
           t.style.zIndex = "";
+          t = t.parentNode;
         }
     }
     var arrows = arrowOffscreenTiles(tiles,id);
@@ -96,12 +96,12 @@ function indicatorDisplay(b,id) {
     var tiles = codearea2[id].getElementsByClassName('highlight');
     while (tiles.length > 0) {
         var t = tiles[0];
-        while (true) {
-          t = t.parentNode;
+        while (true) {          
           if (!t) { break; }
           if (t.classList.contains("codearea")) { break; }
           t.style.zIndex = t.oldZ;
           delete t.oldZ;
+          t = t.parentNode;
         }
         tiles[0].classList.remove('highlight');
     }
@@ -264,6 +264,8 @@ window.addEventListener('load', function(ev) {
 // );
 var key1 = "1".charCodeAt(0);
 var key2 = "2".charCodeAt(0);
+var key3 = "3".charCodeAt(0);
+var key4 = "4".charCodeAt(0);
 document.addEventListener('keypress', function(ev) {
     if (ev.keyCode == ev.DOM_VK_F5) {
         ev.preventDefault();
@@ -283,6 +285,12 @@ document.addEventListener('keypress', function(ev) {
     }
     if (ev.charCode == key2) {
       testSetup(2);
+    }
+    if (ev.charCode == key3) {
+      testSetup(3);
+    }
+    if (ev.charCode == key4) {
+      testSetup(4);
     }
 });
 

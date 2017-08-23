@@ -532,9 +532,10 @@ function createChunkFromJSON(chunk,id) {
         tiles[i].style.top = runningTop + 'px';
         runningTop += tiles[i].offsetHeight;
         tiles[i].style.left = chunk.x;
-        tiles2[id].push(tiles[i]);
-        tiles[i].windex = id;
+        // tiles2[id].push(tiles[i]);
+        // tiles[i].windex = id;        
     }
+    
 }
 function loadJSON(str,id) {
     // var bin = document.getElementById('bin');
@@ -566,7 +567,12 @@ function loadJSON(str,id) {
                         renameVar(el.value, el.value, el);
                         el.oldName = el.value;
                     }
-            });
+            });    
+    Array.prototype.forEach.call(codearea2[id].getElementsByClassName('tile'), function(el) { 
+      // console.log(el.tagName + ", " + el.parentNode.classList);      
+      tiles2[id].push(el);
+      el.windex = id;
+    });
     Array.prototype.forEach.call(tiles2[id], attachTileBehaviour);
     generateCode(id);
     if (!codearea2[id].classList.contains('shrink')) {
@@ -635,7 +641,7 @@ function loadSample(k,id) {
                 checkpointSave(id);
                 // history.replaceState(generateJSObject(), "", "#sample=" + k);
                 console.log("Loading: " + loading + ", " + loading.parentNode);
-                // loading.parentNode.removeChild(loading);
+                loading.parentNode.removeChild(loading);
                 addTileTouch(id);
             }, 50);
         }

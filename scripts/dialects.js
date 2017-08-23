@@ -429,7 +429,7 @@ dialects.sniff = {
                             li.appendChild(img);
                             menu.appendChild(li);
                             var inp=valOrigin.getElementsByTagName("input")[0];
-                            li.addEventListener('click', function() {
+                            li.addEventListener("click", function() {
                                 inp.value = url;
                                 codearea2[id].removeChild(menu);
                                 updateTileIndicator();
