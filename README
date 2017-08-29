@@ -15,8 +15,6 @@ Google Chrome only and even then the following setting:
 chrome://flags/#overscroll-history-navigation
 must be set to disabled.
 This prevents touch actions from causing page swiping, i.e. forward and back.
-Another difference is that Tabletop Grace has all its scripts located
-in the script folder, whereas Tiled Grace uses the root directory.
 
 Original Tiled Grace readme follows:
 =========================================================================
