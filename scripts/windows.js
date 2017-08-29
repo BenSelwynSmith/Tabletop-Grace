@@ -1,6 +1,7 @@
 "use strict"
 var windowMenu = [];
 var windowColors = ["red", "blue", "yellow", "green"];
+var debug = false;
 
 var windows = [];
 var codearea2 = [];
@@ -13,13 +14,33 @@ var editor4 = [];
 var desaturator2 = [];
 var overlays2 = [];
 var getCode = [];
-var canvas;
+var output = [];
+var canvas2 = [];
+var text2 = [];
+var output = [];
+var minigraceRunning = [0,0,0,0];
+var minigraceTermination = [0,0,0,0];
+var canvasId = 'standard-canvas';
+var textId = 'stdout_txt';
+var minigraces = [];
+var pad1 = "19px";
+var pad2 = "12.66666666666667px";
+var pad3 = "6.33333333333333px";
 
 var transforms = ["", "rotate(90deg)", "rotate(-90deg)", "rotate(180deg)"];
+var mouse = 0;
 
+var minigraceActiveFunctions = [];
+var minigraceActiveWindows = [];
+var minigraceTerminationCounter = 0;
+var minigraceActiveInstances = 0;
+var minigraceLastWindow = 0;
+var minigraceWindowCall = [0,0,0,0];
+var minigraceTerminationTarget = [0,0,0,0];
 
 var windowCount = 0;
 var windowMax = 4;
+var windowsActive = 0;
 var alt = 0;
 var depth = 5;
 var scaled = 0;
@@ -37,111 +58,112 @@ var mh = 40;    //Half
 var mh2 = 80;
 
 var svgX = 100;
-var svgY = 200;
+var svgY = 99;
 var win1 = 'a';
 var win2 = 'a';
 
 var windowarea;
 var windowCon;
 
-var minigraceTermination;
-var minigraceRunning = 0;
+var spam = false;
+
 var mg2;
-
-function removeWindows() {
-  for (var i = 0; i < windows.length; i++) {
-    windows[i].parentNode.removeChild(windows[i]);
-  }
-  windows = [];
-  windowCount = 0;
-}
-
-function canvasSwap() {
-  var c = document.getElementById('standard-canvas');
-  var d = document.getElementById('standard-canvas2');
-  c.setAttribute('id','standard-canvas2');
-  d.setAttribute('id','standard-canvas');
-}
-
-function positionCorrection(pos, windex) {
-  return [pos[0] - windows[windex].offsetLeft - windowCon.offsetLeft, pos[1] - windows[windex].offsetTop - windowCon.offsetTop];
-}
-
-function minigraceReset() {
-  minigraceMagicToggle();
-  // clearOutput();
-  setTimeout(minigraceMagicToggle, 100);
-}
-
-function minigraceMagicToggle() {
-  if (minigrace) {
-    mg2 = minigrace;
-    minigrace = null;
-  } else {
-    minigrace = mg2;
-    mg2 = null;
-  }
-}
-
-function weakTerminationChecker() {  
-  minigraceTermination++;
-  var t = minigraceTermination;
-  setTimeout(function() {
-    if (t == minigraceTermination) {
-      // console.log("Termination.");
-      minigraceRunning = 0;
-      codeRunningToggle(0);
-    }
-  }, 300);
-}
-
-function codeRunningToggle(b) {
-  if (b) {
-    Array.prototype.forEach.call(document.getElementsByClassName('goPie'), function(el) {
-      el.style.fill = 'red';
-    });
-  } else {
-    Array.prototype.forEach.call(document.getElementsByClassName('goPie'), function(el) {
-      el.style.fill = 'black';
-    });
-  }
-}
 
 function windowsSetup() {
   addWMenuTouch();
   windowCon = document.getElementById('windowContainer');
   //Setup initial dialect (Adds some tiles)
   addDialectMethods(document.getElementById('dialect').value);
-  
+
   for (var i = 0; i < windowMax; i++) {
     addBlockWindow(i);
     windows[i].style.display = "none";
     windows[i].windex = i;
+    windows[i].setAttribute('class', "code-window");
     codearea2[i] = windows[i].children[0];
     codearea2[i].windex = i;
     desaturator2[i] = document.getElementById('desaturator' + i);
     overlays2[i] = document.getElementById('overlay-canvas' + i);
+    windows[i].maximised = 0;
+    text2[i] = document.getElementById('txt' + i);
+    text2[i].addEventListener('touchend', function(event) {
+      expandOutput(event.target.windex);
+    });
+    text2[i].windex = i;
+    canvas2[i] = document.getElementById('canvas' + i);
+    canvas2[i].windex = i;
+    canvas2[i].onresize = function(el) {
+      resizeCanvas(el.windex);
+    }
+    output[i] = canvas2[i].parentNode;
+    output[i].style.display = "none";
+
+
+    //Hijack canvas context functions and use them to determine when a program ends.
+    var ctx = canvas2[i].getContext('2d');
+    ctx.stroke2 = ctx.stroke;
+    ctx.fill2 = ctx.fill;
+    ctx.idx = i;
+    ctx.stroke = function() {
+      this.stroke2();
+      minigraceWindowCall[this.idx] = 1;
+      if (spam) console.log("Canvas: " + this.idx + ", " + minigraceWindowCall);
+      weakTerminationChecker(this.idx);
+    }
+    ctx.fill = function() {
+      this.fill2();
+      minigraceWindowCall[this.idx] = 1;
+      if (spam) console.log("Canvas: " + this.idx + ", " + minigraceWindowCall);
+      weakTerminationChecker(this.idx);
+    }
+    //Output for Textarea is handled in setup.js
+
   }
+
   setup();
-  
+
   for (var i = 0; i < windowMax; i++) {
     editor4[i] = editor3[i].children[2].children[0];
     addTouch(i);
     tiles2[i] = [];
   }
-  
+
+  // codearea2[0].addEventListener('click', function(event) {
+    // showPieMenu(event.clientX, event.clientY, 0, 1);
+  // });
+
+  window.onresize = function() {
+    if (windowsActive) {
+      arrangeWindows();
+    }
+  }
   // canvas = document.getElementById('standard-canvas');
   // canvas.addEventListener('touchend', expandOutput);
-  document.getElementById('stdout_txt').addEventListener('touchend', expandOutput);
-  
-  
+
+
+
   //Test Code
-  testSetup(1);
+  windowMenuClick(0,1,1);
+  windowMenuClick(1,2,1);
+  mouse = 1;
+  showSecMenu(400,300,0);
+  showSecMenu(900,200,1);
+
+
+  // testSetup(1);
   // showPieMenu(300,300,0);
   // showSecMenu(600,600,0);
   //
+  // try {
+  // windowMenuClick(0,3,1);
+  // } catch (e) {}
+  // windowMenuClick(0,1,1);
+  // windowMenuClick(0,3,1);
+  // showSecMenu(400,300,0);
+  // showSecMenu(900,200,1);
+  // mouse = 1;
 
-
+  //There might be a reason this is not in a loop, or it might be due to a closure failure
   getCode[0] = function() {
     if (codearea2[0].classList.contains("shrink"))
       return editor2[0].getValue();
@@ -169,54 +191,387 @@ function windowsSetup() {
   // document.getElementById('standard-canvas').getContext("2d").clearRect = function() { };
 }
 
-function testSetup(i) {
-  if (i == 1) {
-    for (var a = 1; a < 4; a++) {
-      windows[a].style.display = "none";
-    }
-    windows[0].style.display = "";
-    windows[0].style.left = "0%";
-    windows[0].style.top = "0%";
-    windows[0].style.width = "100%";
-    windows[0].style.height = "100%";
-  } else if (i == 2) {
-    for (var a = 2; a < 4; a++) {
-      windows[a].style.display = "none";
-    }
-    for (var a = 0; a < 2; a++) {
-      windows[a].style.display = "";
-      windows[a].style.top = "0%";
-      windows[a].style.width = "50%";
-      windows[a].style.height = "100%";
-      windows[a].style.transform = "";
-    }
-    windows[0].style.left = "0%";
-    windows[1].style.left = "50%";    
-  } else if (i == 3) {
-    for (var a = 0; a < 3; a++) {
-      windows[a].style.display = "";
-      windows[a].style.top = "0%";
-      windows[a].style.width = "33%";
-      windows[a].style.height = "100%";
-      windows[a].style.transform = "";
-    }
-    windows[0].style.left = "0%";
-    windows[1].style.left = "33%";
-    windows[2].style.left = "66%";
-    windows[3].style.width = "34%";
-  } else if (i == 4) {
-    for (var a = 0; a < 4; a++) {
-      windows[a].style.display = "";
-      windows[a].style.top = "0%";
-      windows[a].style.width = "25%";
-      windows[a].style.height = "100%";
-      windows[a].style.transform = "";
-    }
-    windows[0].style.left = "0%";
-    windows[1].style.left = "25%";
-    windows[2].style.left = "50%";
-    windows[3].style.left = "75%";    
+function tryLog(msg) {
+  if (debug) {
+    console.log(msg);
   }
+}
+
+function scrollTest(id) {
+  tryLog("0 Scroll: " + codearea2[id].scrollWidth + ", " + codearea2[id].scrollHeight + " vs " + codearea2[id].offsetWidth + ", " + codearea2[id].offsetHeight);
+}
+
+
+function removeWindows() {
+  for (var i = 0; i < windows.length; i++) {
+    windows[i].parentNode.removeChild(windows[i]);
+  }
+  windows = [];
+  windowCount = 0;
+}
+
+function outputSwap(id, b) {
+  if (b) {
+    canvas2[id].oldCid = canvas2[id].id;
+    text2[id].oldTid = text2[id].id;
+    canvas2[id].id = canvasId;
+    text2[id].id = textId;
+  } else {
+    canvas2[id].id = canvas2[id].oldCid;
+    text2[id].id = text2[id].oldTid;
+  }
+}
+
+function canvasSwap() {
+  var c = document.getElementById('standard-canvas');
+  var d = document.getElementById('standard-canvas2');
+  c.setAttribute('id','standard-canvas2');
+  d.setAttribute('id','standard-canvas');
+}
+
+function positionCorrection(pos, windex) {
+  return [pos[0] - windows[windex].offsetLeft - windowCon.offsetLeft, pos[1] - windows[windex].offsetTop - windowCon.offsetTop];
+}
+
+function minigraceStopCheck() {
+  if (minigrace.stopRunning) {
+    minigrace.stopRunning = 0;
+    minigraceHardReset();
+    minigraceRunning = [0,0,0,0];
+    for (var i = 0; i < windowsMax; i++) {
+      codeRunningToggle(i,1);
+    }
+    mgtReset();
+  }
+}
+
+function minigraceHardReset() {
+  minigraceCloneReset();
+  // clearOutput();
+  setTimeout(minigraceCloneReset, 100);
+}
+
+function minigraceCloneReset() {
+  if (minigrace) {
+    mg2 = minigrace;
+    minigrace = null;
+  } else {
+    minigrace = mg2;
+    mg2 = null;
+  }
+}
+
+function weakTerminationChecker(windex) {
+  if (windex == null) { return; }
+  if (minigraceRunning[windex] == 0) { return; }
+  minigraceTermination[windex]++;
+  var t = minigraceTermination[windex];
+  tryLog("MGT: " + minigraceTermination[windex] + ", " + t);
+  setTimeout(function() {
+    if (t == minigraceTermination[windex]) {
+      console.log("Termination." + windex);
+      minigraceRunning[windex] = 0;
+      minigraceActiveInstances--;
+      codeRunningToggle(windex,0);
+    }
+  }, 300);
+}
+
+
+
+function mgtSetup() {
+  // console.log("mgtSetup");
+  minigraceActiveFunctions = [];
+  minigraceActiveWindows = [];
+  minigraceTerminationCounter = 2;
+  for (var i = 0; i < minigraceActiveInstances; i++) {
+    minigraceActiveFunctions.push(null);
+  }
+  spam = true;
+}
+
+function mgtReset() {
+  minigraceActiveWindows = [];
+  minigraceActiveFunctions = [];
+  minigraceTerminationTarget = [0,0,0,0];
+  minigraceTerminationCounter = 0;
+  spam = false;
+  minigraceLastWindow = 0;
+}
+
+function mgtCollect(func) {
+  // console.log("mgtCollect: " + minigraceActiveInstances + ", " + minigraceTerminationCounter);
+
+  if (minigraceActiveInstances == 1) {
+    for (var i = 0; i < minigraceRunning.length; i++) {
+      if (minigraceRunning[i] == 1) {
+        mgtEnd(i);
+      }
+    }
+    mgtReset();
+    // console.log("Single instance termination.");
+    return;
+  }
+
+  // console.log("AF: " + minigraceActiveFunctions.length);
+  var total = 0;
+  //Add function to list
+  var added = false;
+  for (var i = 0; i < minigraceActiveFunctions.length; i++) {
+    if (minigraceActiveFunctions[i] == null && !added) {
+      minigraceActiveFunctions[i] = func;
+      // console.log("Added function: " + i);
+      added = true;
+      total++;
+    } else if (minigraceActiveFunctions[i] != null) {
+      total++;
+    }    
+  }
+
+  //Collection complete
+  if (total == minigraceActiveInstances) {
+    var b = false;
+    if (minigraceTerminationCounter == 2) {
+      minigraceTerminationCounter = 3;
+      minigraceWindowCall = [0,0,0,0];
+      minigraceLastWindow = 0;
+      b = true;
+    }
+    // console.log("Collected all functions: " + total + ", FirstTime: " + b);
+
+    if (!b) {
+      //2nd+ Call      
+      var idx = minigraceWindowCall.indexOf(1);
+      // console.log("Change Idx: " + idx + ", from : " + minigraceWindowCall);
+      // minigraceWindowCall = [0,0,0,0];
+      minigraceWindowCall[idx] = 0;
+      minigraceActiveWindows[minigraceLastWindow] = idx;
+      minigraceLastWindow++;
+      if (minigraceLastWindow >= minigraceActiveInstances) {
+        // console.log("All functions tested: " + minigraceActiveWindows + " vs " + minigraceTerminationTarget);
+        //Cancel desired instances
+        for (var i = 0; i < minigraceActiveFunctions.length; i++) {
+          idx = minigraceActiveWindows[i];
+          var f = minigraceActiveFunctions[i];
+          // console.log("i: " + i + ", idx: " + idx + ", mgtT: " + minigraceTerminationTarget[idx]);
+          if (minigraceTerminationTarget[idx] == 0) {
+            //Continue
+            // console.log("Releasing Function: " + i + ", idx: " + idx);
+            // setTimeout(function() {
+            minigrace.trapErrorsFunc(f);
+            // }, 50);
+          } else {
+            //Stop running
+            // console.log("Stopping Function: " + i + ", idx: " + idx);
+            mgtEnd(idx);
+          }
+        }
+        mgtReset();
+        return;
+      }
+    }
+
+    //Release first/next function
+    var f = minigraceActiveFunctions[minigraceLastWindow];
+    // console.log("Releasing Function: " + minigraceLastWindow);
+    minigraceActiveFunctions[minigraceLastWindow] = null;
+    minigrace.trapErrorsFunc(f);
+  }
+}
+
+function mgtEnd(idx) {
+  minigraceRunning[idx] = 0;
+  codeRunningToggle(idx,0);
+}
+
+
+
+function moveTileToWindow(origin, target, tile) {
+  var w0 = windows[origin];
+  var w1 = windows[target];
+  //Find all tiles in scope
+  //Remove from origin
+  //Add to target
+  tryLog("Moving Tiles from " + w0 + "(" + origin + ") to "  + w1 + "(" + target + ") : " + tile);
+  var tiles = [];
+  var top = tile;
+  while (true) {
+    if (top.parentNode != codearea2[origin]) {
+      top = top.parentNode;
+    } else {
+      break;
+    }
+  }
+
+  findAllTiles(tile, tiles, 0);
+  tryLog("Tiles found: " + tiles.length);
+  // Array.prototype.forEach.call(tiles,function (el) {
+    // el.style.border = "Solid 3px";
+  // });
+
+  for (var i = 0; i < tiles.length; i++) {
+    // tiles[i].windex = target;
+    if (tiles[i].parentNode == codearea2[origin]) {
+      codearea2[target].appendChild(tiles[i]);
+    }
+    tryLog(tiles[i] + ", " + tiles[i].windex);
+  }
+
+  tiles2[origin] = [];
+  var t = codearea2[origin].getElementsByClassName('tile');
+  for (var i = 0; i < t.length; i++) {
+    t[i].windex = origin;
+    tiles2[origin].push(t[i]);
+  }
+
+  tiles2[target] = [];
+  var t = codearea2[target].getElementsByClassName('tile');
+  for (var i = 0; i < t.length; i++) {
+    t[i].windex = target;
+    tiles2[target].push(t[i]);
+  }
+
+
+  updateTileIndicator(origin);
+  generateCode(origin);
+  reflow(origin);
+  checkpointSave(origin);
+  clearPopouts(origin);
+
+  updateTileIndicator(target);
+  generateCode(target);
+  reflow(target);
+  checkpointSave(target);
+  clearPopouts(target);
+}
+
+function findAllTiles(tile, list, dir) {
+  if (dir == 0 || dir == -1) {
+    if (tile.prev) {
+      findAllTiles(tile.prev, list, -1);
+    }
+  }
+
+  if (dir == 0 || dir == 1) {
+    if (tile.next) {
+      findAllTiles(tile.next, list, 1);
+    }
+  }
+
+  for (var i = 0; i < tile.children.length; i++) {
+    findAllTiles(tile.children[i], list, 0);
+  }
+
+  if (tile.classList && tile.classList.contains('tile')) {
+    list.push(tile);
+  }
+}
+
+
+
+function codeRunningToggle(windex,b) {
+  if (b) {
+    Array.prototype.forEach.call(codearea2[windex].getElementsByClassName('goPie'), function(el) {
+      el.style.fill = 'red';
+    });
+    Array.prototype.forEach.call(codearea2[windex].getElementsByClassName('goPieText'), function(el) {
+      el.textContent = "■";
+      el.style.fontSize = "50px";
+    });
+  } else {
+    Array.prototype.forEach.call(codearea2[windex].getElementsByClassName('goPie'), function(el) {
+      el.style.fill = 'black';
+    });
+    Array.prototype.forEach.call(codearea2[windex].getElementsByClassName('goPieText'), function(el) {
+      el.textContent = String.fromCharCode(9658);
+      el.style.fontSize = "30px";
+    });
+  }
+}
+
+function checkExpandOutput(id) {
+  // console.trace();
+  if (canvas2[id].parentNode.style.display == "none") {
+    expandOutput(id);
+  }
+}
+
+function resizeCanvas(id) {
+  canvas2[id].width = canvas2[id].offsetWidth;
+  canvas2[id].height = canvas2[id].offsetHeight;
+}
+
+function expandOutput(id) {
+  // console.trace();
+  var o = document.getElementById("outputarea" + id);
+  var w = windows[id];
+  if (o.style.display == "none") {
+    o.style.display = "";
+    codeRunningToggle(id,minigraceRunning[id]);
+  } else {
+    o.style.display = "none";
+    if (minigraceRunning[id]) {
+      Array.prototype.forEach.call(codearea2[id].getElementsByClassName('goPie'), function(el) {
+        el.style.fill = 'gold';
+      });
+      Array.prototype.forEach.call(codearea2[id].getElementsByClassName('goPieText'), function(el) {
+      el.textContent = "\uE70A";
+      el.style.fontSize = "40px";
+      });
+    }
+  }
+}
+
+
+
+function testSetup(i) {
+  // if (i == 1) {
+    // for (var a = 1; a < 4; a++) {
+      // windows[a].style.display = "none";
+    // }
+    // windows[0].style.display = "";
+    // windows[0].style.left = "0%";
+    // windows[0].style.top = "0%";
+    // windows[0].style.width = "100%";
+    // windows[0].style.height = "100%";
+  // } else if (i == 2) {
+    // for (var a = 2; a < 4; a++) {
+      // windows[a].style.display = "none";
+    // }
+    // for (var a = 0; a < 2; a++) {
+      // windows[a].style.display = "";
+      // windows[a].style.top = "0%";
+      // windows[a].style.width = "50%";
+      // windows[a].style.height = "100%";
+      // windows[a].style.transform = "";
+    // }
+    // windows[0].style.left = "0%";
+    // windows[1].style.left = "50%";
+  // } else if (i == 3) {
+    // for (var a = 0; a < 3; a++) {
+      // windows[a].style.display = "";
+      // windows[a].style.top = "0%";
+      // windows[a].style.width = "33%";
+      // windows[a].style.height = "100%";
+      // windows[a].style.transform = "";
+    // }
+    // windows[0].style.left = "0%";
+    // windows[1].style.left = "33%";
+    // windows[2].style.left = "66%";
+    // windows[3].style.width = "34%";
+  // } else if (i == 4) {
+    // for (var a = 0; a < 4; a++) {
+      // windows[a].style.display = "";
+      // windows[a].style.top = "0%";
+      // windows[a].style.width = "25%";
+      // windows[a].style.height = "100%";
+      // windows[a].style.transform = "";
+    // }
+    // windows[0].style.left = "0%";
+    // windows[1].style.left = "25%";
+    // windows[2].style.left = "50%";
+    // windows[3].style.left = "75%";
+  // }
 }
 
 function testScaleWindow(s) {
@@ -229,103 +584,33 @@ function propComparator(prop) {
     }
 }
 
-function propComparator2(prop) {
-    return function(a,b) {
-        if (a[prop] < b[prop]) { return -1; }
-        if (a[prop] > b[prop]) { return 1; }
-        return 0;
-    }
-}
-
 function bringToFront(t) {
- /*  var f = t;
-  var topDepth = depth + windowCount - 1;
-
-  // console.log("Windows: " + windows.length);
-
-  if (f.depth != topDepth) {
-    var tmp = windows.slice();
-    tmp.sort(propComparator('depth'));
-    console.log("Top Element: " + tmp[0].depth);
-    var depthTracker = depth;
-    for (var i = 0; i < tmp.length; i++) {
-      if (tmp[i].idx == f.idx) {
-        tmp[i].depth = topDepth;
-      } else {
-        if (tmp[i].depth > depthTracker) {
-          tmp[i].depth--;
-        }
-        depthTracker++;
-      }
-      tmp[i].style.zIndex = tmp[i].depth;
-    }
-    return false;
-  } else {
-    return true;
-  } */
 }
 
-function checkExpandOutput() {
-  if (expanded == 0) {
-    expandOutput();
-  }
-}
 
-function expandOutput(id) {
-  var o = document.getElementById("outputarea");
-  if (expanded == 0) {
-    o.style.display = "";
-    o.style.zIndex = "995";
-    o.style.width = "50%";
-    o.style.left = "25%";
-    o.style.position = "fixed";
-    o.style.top = "24px";
-    o.style.height = "calc(100% - 48px)";
-
-    expanded = 1;
-  } else {
-    o.style.display = "none";
-    expanded = 0;
-  }
-  // var c = document.getElementById("codearea");
-  // var o = document.getElementById("outputarea");
-  // var b = document.getElementById("expand-button");
-  // if (expanded == 0) {
-    // c.style.width = "70%";
-    // o.style.width = "30%";
-    // b.innerHTML = ">";
-    // expanded = 1;
-  // } else {
-    // c.style.width = "99%";
-    // o.style.width = "1%";
-    // b.innerHTML = "<";
-    // expanded = 0;
-  // }
-
-
-}
 
 function clearCode(b,id) {
-  console.log("ClearCode");
-  for (var i = tiles2[id].length; i--; ) {
-    tiles2[id][i].remove();
-  }
+  tryLog("ClearCode");
+  // for (var i = tiles2[id].length; i--; ) {
+    // tiles2[id][i].remove();
+  // }
   var children = codearea2[id].children;
-  // console.log(children.length);
+  tryLog(children.length);
   for (var i = 0; i < codearea2[id].children.length; i++) {
     if (children[i].classList.contains('tile')) {
       codearea2[id].removeChild(children[i]);
       i--;
     }
   }
+  tiles2[id] = [];
   if (!b) {
     generateCode(id);
   }
-  // var pie = codearea2[id].getElementsByClassName('errorPie');  
+  // var pie = codearea2[id].getElementsByClassName('errorPie');
   // for (var i = 0; i < pie.length; i++) {
     // pie[i].setAttribute('style.fill', 'green');
   // }
-  
+
   Array.prototype.forEach.call(codearea2[id].getElementsByClassName('errorPie'), function(el) {
     el.style.fill = 'green';
   });
@@ -333,12 +618,12 @@ function clearCode(b,id) {
 
 
 
-function clearOutput() {
-  var c = document.getElementById("standard-canvas");
-  var t = document.getElementById("stdout_txt");
-  t.value = "";
-  var context = c.getContext("2d");
-  context.clearRect(0, 0, c.width, c.height);
+function clearOutput(id) {
+  // var c = document.getEzlementById("standard-canvas");
+  // var t = document.getElementById("stdout_txt");
+  text2[id].value = "";
+  var context = canvas2[id].getContext("2d");
+  context.clearRect(0, 0, canvas2[id].width, canvas2[id].height);
 }
 
 
@@ -358,9 +643,9 @@ function moveWindow(x,y) {
 }
 
 function scaleWindow(s,t) {
-  console.log("Scale: " + s);
+  tryLog("Scale: " + s);
   var f = window.frameElement || t;
-  // console.log("Window: " + f);
+  tryLog("Window: " + f);
   if (f) {
     var w, h, l, t;
     if (!scaled) {
@@ -374,12 +659,12 @@ function scaleWindow(s,t) {
       h = parseFloat(f.style.height);
       l = parseFloat(f.style.left);
       t = parseFloat(f.style.top);
-      // console.log("Scale: " + w + "," + h + "," + l + "," + t);
+      tryLog("Scale: " + w + "," + h + "," + l + "," + t);
     }
 
     f.style.width = w + s + "px";
     f.style.height = h + s + "px";
-    // console.log("WH: " + w + "," + h + " - " + f.style.width + "," + f.style.height);
+    tryLog("WH: " + w + "," + h + " - " + f.style.width + "," + f.style.height);
 
     f.style.left = (l - s *.5) + "px";
     f.style.top = (t - s *.5) + "px";
@@ -392,14 +677,14 @@ function testRotateWindow(s) {
 
 function rotateWindow(s,t) {
   var f = window.frameElement || t;
-  // console.log("Window: " + f);
+  tryLog("Window: " + f);
   if (f) {
     if (isNaN(f.rot)) {
       f.rot = 0;
     }
     var r = f.rot + s;
     f.style.transform = "rotate(" + r + "deg)";
-    console.log("R:" + f.rot + "," + r);
+    tryLog("R:" + f.rot + "," + r);
     f.rot = r % 360;
   }
 }
@@ -408,7 +693,7 @@ function rotateWindow(s,t) {
 
 
 function addBlockWindow(id) {
-  // console.log("addBlockWindow " + id);
+  tryLog("addBlockWindow " + id);
   var w = 1920/1080;
   var h = 1080/1920;
   if (windowCount < windowMax) {
@@ -490,7 +775,7 @@ function closeWindowMenu(id) {
 
 
 function showWindowMenu2(event,x,y) {
-  // console.log(event.target);
+  tryLog(event.target);
   var target = event.target;
   if (!event.target) {
     target = document.getElementById('svg_' + event);
@@ -498,11 +783,11 @@ function showWindowMenu2(event,x,y) {
   while (target.tagName != "svg") {
       target = target.parentNode;
   }
-  var x = x | event.clientX ;
+  var x = x | event.clientX;
   var y = y | event.clientY;
 
   var id = parseInt(target.getAttribute("id").slice(-1));
-  console.log("SWM2: " + x + ", " + y + ", " + id);
+  tryLog("SWM2: " + x + ", " + y + ", " + id);
   var svg0 = document.getElementById('window_svg');
   var svg = svg0.cloneNode(true);
   svg.removeAttribute('id');
@@ -512,7 +797,7 @@ function showWindowMenu2(event,x,y) {
   svg.xPoint = x;
   svg.yPoint = y;
   svg.idx = id;
-  svg.setAttribute("class","piemenu");
+  svg.setAttribute("class","wmenu piemenu");
   svg0.parentNode.appendChild(svg);
   svg.setAttribute("ts", Date.now());
   createWindowMenu(svg,id);
@@ -524,49 +809,56 @@ function showWindowMenu2(event,x,y) {
   var sh = 200;
   var sh2 = 100;
   var wh = h/w;
-  var min = 20;
-  // console.log("sw2: " + sw2);
-  console.log("wh: " + wh);
+  var min = 0;
+  tryLog("sw2: " + sw2);
+  tryLog("wh: " + wh);
+  var gap = "0px";
 
   if (id == 0 || id == 3) {
     var l = Math.min(w-sw-min,Math.max(min,x - sw2));
     svg.style.left = l + "px";
     if (id == 0) {
-      svg.style.bottom = "10px";
+      svg.style.bottom = gap;
     } else if (id == 3) {
       // svg.style.left = '45%';
       // svg.style.width = '50%';
-      svg.style.top = "10px";
+      svg.style.top = gap;
       svg.style.transform = "rotate(180deg)";
     }
   }
 
   if (id == 1 || id == 2) {
-    var t = Math.min(h-sh-min,Math.max(min,y - sh2));
+    y += 40;
+    // y = event.clientY;
+    var t = Math.min(h-sh-min,Math.max(sh2+min,y - sh2));
     svg.style.top = t + "px";
     if (id == 1) {
-      svg.style.left = "10px";
+      svg.style.left = "-45px";
       svg.style.transform = "rotate(90deg)";
     } else if (id == 2) {
-      svg.style.right = "10px";
+      svg.style.right = "-45px";
       svg.style.transform = "rotate(-90deg)";
     }
   }
 
 }
 
-function setRotation(idx,rid) {  
+function setRotation(idx,rid) {
   //Set Rotate
   windows[idx].style.transform = transforms[rid];
-  windows[idx].rid = rid;  
+  windows[idx].rid = rid;
+}
+function maximiseWindowToggle(id) {
+  windows[id].maximised = !windows[id].maximised;
+  arrangeWindows();
 }
 
-function windowMenuClick(idx,rid,state) {
-  //Borders: 2px -> 100% - 6px  
+function windowMenuClick(idx,rid,state,pos) {
+  //Borders: 2px -> 100% - 6px
   //50% -> Left: Width 50% - 4px
   //      Right: Width 50% - 6px
-  
-  
+
+
   //State: 1 Tap, 2 Hold
 
   //Operations:
@@ -582,31 +874,252 @@ function windowMenuClick(idx,rid,state) {
   //Tap or Hold?
   //Mouse example
   var r = false;
+  var arrange = 0;
   if (windows[idx].rid != null && windows[idx].rid == rid) { r = true; }
-  console.log("Idx: " + idx + ", rid: " + rid + ", " + r + ", " + windows[idx].rid + ", " + (windows[idx].rid == rid));
+  tryLog("Idx: " + idx + ", rid: " + rid + ", " + r + ", " + windows[idx].rid + ", " + (windows[idx].rid == rid));
   //Show Window
   if (windows[idx].style.display == "none") {
     if (state == 1) {
       windows[idx].style.display = "";
+      windowsActive++;
+      arrange = 1;
     } else {
       return;
     }
   }
-  
+
   if (state == 1) {
-    if (r) {
+    if (r && !arrange) {
       //Tap -> Toggle Maximise
-      console.log("Window: " + idx + ", Rotation: " + rid + " -> Toggle Maximise");
+      tryLog("Window: " + idx + ", Rotation: " + rid + " -> Toggle Maximise");
+      maximiseWindowToggle(idx);
     } else {
-      //Tap -> Rotate  
+      //Tap -> Rotate
       setRotation(idx,rid);
-      console.log("Window: " + idx + ", Rotation: " + rid + " -> Rotate");
+      windows[idx].pos = pos;
+      arrange = 1;
+      tryLog("Window: " + idx + ", Rotation: " + rid + " -> Rotate");
     }
   } else if (state == 2) {
     if (windows[idx].style.display == "") {
       windows[idx].style.display = "none";
+      windowsActive--;
+      arrange = 2;
     }
   }
+
+  //Place windows into space available
+  if (arrange == 1) {
+    //Added window
+    arrangeWindows();
+  } else if (arrange == 2) {
+    //Removed window
+    if (!windowsActive) { return; }
+    arrangeWindows();
+  }
+}
+
+function windowComparator(a,b) {
+  //Left Aligned
+  if (a.rid == 1 && b.rid == 1) {
+    return a.idx > b.idx ? 1 : a.idx < b.idx ? -1 : 0;
+  }
+  if (a.rid == 1) { return -1; }
+  if (b.rid == 1) { return 1; }
+
+  //Right Aligned
+  if (a.rid == b.rid == 2) {
+    return a.idx > b.idx ? -1 : a.idx < b.idx ? 1 : 0;
+  }
+  if (a.rid == 2) { return 1; }
+  if (b.rid == 2) { return -1; }
+
+  //Left to right x position
+  return a.pos[0] < b.pos[0] ? -1: a.pos[0] > b.pos[0] ? 1: 0;
+}
+
+function reverseRotateXY(id, rid, x, y) {
+  if (rid == 1) {
+    var t = windows[id].offsetHeight - y;
+    y = x;
+    x = t;
+
+    y += 40;
+  } else if (rid == 2) {
+    var t = windows[id].offsetWidth - x;
+    x = y;
+    y = t;
+    x += 20;
+  } else if (rid == 3) {
+    // x = windows[id].offsetWidth - x + windows[id].offsetLeft;
+    // y = windows[id].offsetHeight - y;
+
+    x = windows[id].offsetWidth - x;
+    y = windows[id].offsetHeight - y;
+  }
+  return [x,y];
+}
+
+function rotateXY(id, rid, x, y, b) {
+  var mod = 0;
+  if (rid == 1) {
+    //RID 1
+    mod = windows[id].offsetHeight * windows[id].order;
+    var t = windows[id].offsetHeight - x + mod + 20;
+    x = y - 20;
+    y = t;
+  } else if (rid == 2) {
+    //RID 2
+    // var t = x - 20;
+    if (windowsActive == 1 && !windows[id].maximised) {
+      mod = windows[id].offsetHeight;
+    } else if (windowsActive > 1) {
+      var order = windowsActive - 1 - windows[id].order;
+      mod = windows[id].offsetHeight * windows[id].order;
+    }
+    var t = x - mod - 20;
+    x = windows[id].offsetWidth - y + 20;
+    y = t;
+  } else if (rid == 3) {
+    //RID 3
+    x = windows[id].offsetWidth - x + windows[id].offsetLeft + 20;
+    y = windows[id].offsetHeight - y + 20;
+  }
+  return [x,y];
+}
+
+function arrangeWindows() {
+  var ids = [];
+  var pos = [];
+  var widx = [];
+  var winLeft = 0;
+  var winWidth = windowContainer.offsetWidth;
+  var winWidth2 = winWidth * .5;
+  var winWidth3 = winWidth2 * .5;
+  var winHeight = windowContainer.offsetHeight;
+  var winHeight2 = winHeight * .5;
+  var winTop = 0;
+  tryLog("Arrange: " + windowsActive);
+  for (var i = 0; i < windowMax; i++) {
+    if (windows[i].style.display != "none") {
+      widx.push(i);
+      ids.push(windows[i].rid);
+      pos.push(windows[i].pos);
+      if (windows[i].rid == 1 || windows[i].rid == 2) {
+        var idx = i;
+        setTimeout(function() {
+          fixAce(idx);
+        }, 1000);
+      }
+    }
+    resizeCanvas(i);
+  }
+
+
+
+  var items = [];
+  for (var i = 0; i < windowsActive; i++) {
+    items[i] = {idx:widx[i], rid:ids[i], pos:pos[i]};
+  }
+
+  items.sort(windowComparator);
+  for (var i = 0; i < items.length; i++) {
+    windows[items[i].idx].order = i;
+  }
+
+
+  if (windowsActive == 1) {
+    var width, height, left, top;
+    var max = windows[widx[0]].maximised;
+    if (ids[0] == 0 || ids[0] == 3) {
+      if (max) {
+        width = "100%";
+        left = "0px";
+      } else {
+        width = "50%";
+        left = Math.min(winWidth - winWidth2, Math.max(pos[0][0] - winWidth3, winLeft)) + "px";
+      }
+      height = "100%";
+      top = "0px";
+    } else if (ids[0] == 1 || ids[0] == 2) {
+      width = winHeight;
+      if (max) {
+        height = winWidth;
+      } else {
+        height = winWidth2;
+      }
+
+      top = (width - height) * .5 + "px";
+      left = (height - width) * .5 + "px";
+
+      width += "px";
+      height += "px";
+    }
+    positionWindow(widx[0], left, width, top, height, (ids[0] == 2));
+  } else {
+    var inc = 1 / windowsActive;
+    var amt = 0;
+    for (var i = 0; i < windowsActive; i++) {
+      positionWindowInto(items[i].idx, items[i].rid, amt, 0, inc, 1, i);
+      amt += inc;
+      windows[items[i].idx].maximised = 0;
+    }
+  }
+}
+
+function fixAce(idx) {
+  Array.prototype.forEach.call(editor3[idx].getElementsByClassName('ace_line'), function(el) {
+    el.style.height = "17px";
+  });
+  windows[idx].getElementsByClassName('ace_scroller')[0].style.left = "30px";
+  windows[idx].getElementsByClassName('ace_layer')[0].style.width = "30px";
+  windows[idx].getElementsByClassName('ace_gutter-active-line')[0].style.height = "17px";
+  var al = windows[idx].getElementsByClassName('ace_active-line');
+  if (al && al[0]) {
+    al[0].style.height = "17px";
+  }
+  Array.prototype.forEach.call(editor3[idx].getElementsByClassName('ace_gutter-cell'), function(el) {
+    el.style.height = "17px";
+    var l = el.innerHTML.length;
+    if (l == 1) {
+      el.style.paddingLeft = pad1;
+    } else if (l == 2) {
+      el.style.paddingLeft = pad2;
+    } else if (l == 3) {
+      el.style.paddingLeft = pad3;
+    }
+  });
+}
+
+function positionWindowInto(id, rid, left, top, width, height, n, b) {
+  var l, t, w, h;
+  if (rid == 0 || rid == 3) {
+    w = 100 * width + "%";
+    h = 100 * height + "%";
+    l = windowContainer.offsetWidth * left + "px";
+    t = windowContainer.offsetHeight * top + "px";
+  } else if (rid == 1 || rid == 2) {
+    w = windowContainer.offsetHeight * height;
+    h = windowContainer.offsetWidth * width;
+    t = (w - h) * .5 + "px";
+    l = (h - w) * .5 + h * (n) + "px";
+    w += "px";
+    h += "px";
+  }
+  positionWindow(id,l,w,t,h, b);
+}
+
+function positionWindow(id, left, width, top, height, b){
+  windows[id].style.width = width;
+  windows[id].style.height = height;
+  if (!b) {
+    windows[id].style.left = left;
+    windows[id].style.right = "";
+  } else {
+    windows[id].style.right = left;
+    windows[id].style.left = "";
+  }
+  windows[id].style.top = top;
 }
 
 function createWindowMenu(svg,rid) {
@@ -621,8 +1134,10 @@ function createWindowMenu(svg,rid) {
   }
 
   //Path for Text
-  var p1 = [50,200];
-  var p2 = [150,200];
+  // var p1 = [50,200];
+  // var p2 = [150,200];
+  var p1 = [50,svgY];
+  var p2 = [150,svgY+10];
   var r = [50,50];
   var ang = 180;
 
@@ -654,40 +1169,40 @@ function createWindowMenu(svg,rid) {
   //Cancel Button - BG
   var newElement = document.createElementNS("http://www.w3.org/2000/svg", 'circle'); //Create a path in SVG's namespace
   newElement.setAttribute("cx", 100);
-  newElement.setAttribute("cy", 200);
+  newElement.setAttribute("cy", svgY);
   newElement.setAttribute("r", 30);
   newElement.style.fill = "black";
   newElement.style.fillOpacity = "0.9";
   svg.appendChild(newElement);
-  // newElement.addEventListener("click", function(event){ closePieMenu(event); });
+  newElement.addEventListener("click", function(event){ if (mouse) closePieMenu(event); });
   newElement.addEventListener("touchend", function(event) { closePieMenu(event); });
   newElement.style.pointerEvents = "all";
 
   //Line LR
   newElement = document.createElementNS("http://www.w3.org/2000/svg", 'line'); //Create a path in SVG's namespace
   newElement.setAttribute("x1", 90);
-  newElement.setAttribute("y1", 198);
+  newElement.setAttribute("y1", svgY-2);
   newElement.setAttribute("x2", 110);
-  newElement.setAttribute("y2", 178);
+  newElement.setAttribute("y2", svgY-22);
   newElement.style.stroke = "red";
   newElement.style.strokeWidth = 5;
   newElement.style.strokeOpacity = .5;
   svg.appendChild(newElement);
-  // newElement.addEventListener("click", function(event){ closePieMenu(event); });
+  newElement.addEventListener("click", function(event){ if (mouse) closePieMenu(event); });
   newElement.addEventListener("touchend", function(event) { closePieMenu(event); });
   newElement.style.pointerEvents = "all";
 
   //Line RL
   newElement = document.createElementNS("http://www.w3.org/2000/svg", 'line'); //Create a path in SVG's namespace
   newElement.setAttribute("x1", 110);
-  newElement.setAttribute("y1", 198);
+  newElement.setAttribute("y1", svgY-2);
   newElement.setAttribute("x2", 90);
-  newElement.setAttribute("y2", 178);
+  newElement.setAttribute("y2", svgY-22);
   newElement.style.stroke = "red";
   newElement.style.strokeWidth = 5;
   newElement.style.strokeOpacity = .5;
   svg.appendChild(newElement);
-  // newElement.addEventListener("click", function(event){ closePieMenu(event); });
+  newElement.addEventListener("click", function(event){ if (mouse) closePieMenu(event); });
   newElement.addEventListener("touchend", function(event) { closePieMenu(event); });
   newElement.style.pointerEvents = "all";
 
@@ -770,7 +1285,7 @@ function createWidget2() {
   // interactMode = 1;
 
   var vars = codearea.getElementsByClassName("tile");
-  // console.log("Widgets needed : " + vars.length);
+  tryLog("Widgets needed : " + vars.length);
   for (var i = 0; i < vars.length; i++) {
     // <div class="select_widget">+
     var div = document.createElement('div');

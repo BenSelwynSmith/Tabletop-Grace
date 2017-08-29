@@ -2,7 +2,7 @@
 var shrinkFuncs = [];
 var growFuncs = [];
 function shrink(id) {
-    // console.log("Shrink: " + id);
+    tryLog("Shrink: " + id);
     if (codearea2[id].viewChange) { return; }
     if (highlightTileErrors(null,id))
         return;
@@ -23,6 +23,10 @@ function shrink(id) {
         starts.push(child);
         continue;
     }
+    
+      
+    
+    
     setTimeout(function() {
         var leftEdge = (document.getElementById(windowIdName + id).getElementsByClassName('ace_gutter')[0].offsetWidth + 3) + 'px';
         var runningTop = -1;
@@ -45,6 +49,10 @@ function shrink(id) {
                 child = child.next;
             }
             runningTop += offset;
+        }
+        tryLog("Ace ID: " + id + ", " + windows[id].rid);
+        if (windows[id].rid == 1 || windows[id].rid == 2) {
+          fixAce(id);
         }
         setTimeout(function() {
             editor3[id].style.visibility = 'visible';
@@ -86,11 +94,13 @@ function grow(id) {
         rebuildTilesInBackground(minigrace.generated_output,id);
     }
     codearea2[id].viewChange = 1;
-    // var viewButton = document.getElementById('viewbutton');
-    // viewButton.disabled = "disabled";
-    // document.getElementById('indicator').style.background = 'green';
+    var pies = editor4[id].getElementsByClassName('piemenu');
+    for (var i = 0; i < pies.length;) {
+      if (pies[i].classList.contains('sec')) {
+        codearea2[id].appendChild(pies[i]);
+      }
+    }    
     editor3[id].style.visibility = "hidden";
-    // ctr.style.visibility = 'hidden';
     codearea2[id].style.visibility = 'visible';
     setTimeout(function() {
         for (var i=0; i<codearea2[id].children.length; i++) {
@@ -112,12 +122,7 @@ function grow(id) {
                 // toolbox.style.visibility = 'visible';
                 // viewButton.disabled = "";
                 codearea2[id].viewChange = 0;
-                var pies = editor4[id].getElementsByClassName('piemenu');
-                for (var i = 0; i < pies.length;) {
-                  if (pies[i].classList.contains('sec')) {
-                    codearea2[id].appendChild(pies[i]);
-                  }
-                }
+                
             }, 1000);
         }, 1100);
     }, 300);

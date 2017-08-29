@@ -14,7 +14,7 @@ function findOffsetTopLeft(el) {
 function isBottomTarget(ch, obj) {
     if (ch.parentNode == null) { return false; }
 
-    // console.log("IsBottomTarget: " + ch + ", " + obj + ", " + ch.parentElement.classList);
+    tryLog("IsBottomTarget: " + ch + ", " + obj + ", " + ch.parentElement.classList);
     if (ch.parentElement.classList.contains('hole')) {
         if (!ch.parentElement.classList.contains('multi')) {
             return false;
@@ -27,7 +27,7 @@ function isBottomTarget(ch, obj) {
     var p = ch.parentNode;
     var id = ch.windex;
     while (p != codearea2[id]) {
-        // console.log("isBottomTarget: " + p + ", " + p.classList);        
+        tryLog("isBottomTarget: " + p + ", " + p.classList);        
         if (p.classList.contains('locked'))
             return false;
         p = p.parentNode;

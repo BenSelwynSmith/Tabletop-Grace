@@ -384,7 +384,7 @@ function findErroneousTiles(reasons,id) {
     if (!reasons)
         reasons = [];
     var tiles = [];
-    // console.log("fet: " + id + ", " + codearea2[id]);
+    tryLog("fet: " + id + ", " + codearea2[id]);
     var emptyHoles = codearea2[id].querySelectorAll(".hole:empty");
     for (var i=0; i<emptyHoles.length; i++) {
         tiles.push(emptyHoles[i]);
@@ -573,7 +573,7 @@ function arrowOffscreenTiles(tiles,id) {
     return arrows;
 }
 function highlightTileErrors(tiles,id) {
-    // console.log("hte: " + id);
+    tryLog("hte: " + id);
     if (!tiles)
         var tiles = findErroneousTiles(null,id);
     if (tiles.length > 0) {

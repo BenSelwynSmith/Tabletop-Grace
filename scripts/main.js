@@ -31,6 +31,7 @@ function changeDialect(id) {
         tb.removeChild(dialectMethods[0]);
     }
     addDialectMethods(document.getElementById('dialect').value);
+    tileList = [];
     generateCode(id);
     checkpointSave(id);
 }
@@ -45,7 +46,7 @@ function isValidVariableName(varname) {
     return true;
 }
 function popupVarMenu(ev) {
-    console.log("Popup: " + ev.target + ", " + ev.target.classList);
+    tryLog("Popup: " + ev.target + ", " + ev.target.classList);
     var el = ev.target;
     if (!el.classList.contains("var-name")) {
         el = el.children[0];
@@ -278,16 +279,16 @@ function attachTileBehaviour(n) {
                 el.title = "Add argument";
             }); */
 //}
-/* function blinkCoddleInputs(el) {
+function blinkCoddleInputs(el) {
     // Chrome has unusual ideas of what input sizes mean
-    var mod = 8;
+    /* var mod = 8;
     if (!el.value) {
         mod = 20;
     }
-    el.style.width = (el.size * mod) + 'px';
-} */
+    el.style.width = (el.size * mod) + 'px'; */
+}
 function attachInputEvents(el) {
-    el.addEventListener('mousedown', function(ev) {
+    /* el.addEventListener('mousedown', function(ev) {
         ev.stopPropagation();
     });
     el.addEventListener('keyup', function(ev) {
@@ -310,7 +311,7 @@ function attachInputEvents(el) {
             generateCode();
             checkpointSave();
         });
-    }
+    } */
 }
 function addArgumentToRequest(argAdder) {
     if (argAdder.previousSibling.nodeName
@@ -427,6 +428,12 @@ function go(id) {
       if (highlightTileErrors(null,id))
         return;
     }
+    
+    // if (minigraceRunning[id]) { 
+      // minigrace.stopRunning = 1;
+      // return;
+    // }
+    
     generateCode(id);
     document.getElementById('stderr_txt').value = "";
     //document.getElementById('stdout_txt').value = "";
@@ -436,16 +443,24 @@ function go(id) {
       canvasHack = 1;
     }
 
-    resizeCanvas();
-
+    resizeCanvas(id);
+    
+    minigraceRunning[id] = 1;
+    minigraceTermination[id] = 0;
+    minigraceActiveInstances++;
+    console.log("Running: " + id + ", mgAI: " + minigraceActiveInstances);
+    
     minigrace.modname = "main";
+    minigrace.windex = id;
     // var getCode = makeGetCodeFunc(id);
-    console.log("Go(" + id + "): " + minigrace.compilerun(getCode[id]()));
-
-    minigraceRunning = 1;
-    minigraceTermination = 0;
-    weakTerminationChecker();
-    codeRunningToggle(1);
+    outputSwap(id,1);
+    minigrace.compilerun(getCode[id]());
+    outputSwap(id,0);
+    codeRunningToggle(id,1);
+    // minigraceRunning = 1;
+    // minigraceTermination = 0;
+    // weakTerminationChecker();
+    
 }
 var theBrowser = 'unknown';
 if (navigator.userAgent.search('Chrome') != -1) {

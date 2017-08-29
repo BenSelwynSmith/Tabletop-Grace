@@ -1,6 +1,6 @@
 .select_widget {
     width: 30px;
-    height: 30px;    
+    height: 30px;
     border: 2px outset hsl(52, 80%, 47%);
     background: hsl(52, 60%, 70%);
     text-align: center;
@@ -8,11 +8,13 @@
     margin-right: 2px;
 }
 
+
+
 .window_menu {
   width: 250px;
   height: 1px;
-  background: silver;  
-  position: absolute;   
+  background: silver;
+  position: absolute;
   animation-duration: 0.3s;
   animation-fill-mode: forwards;
   z-index:50;
@@ -41,7 +43,7 @@
   font-family:arial;
   text-align: center;
   position:relative;
-  cursor:default;  
+  cursor:default;
 }
 
 .osk {
@@ -86,7 +88,7 @@
 }
 
 iframe {
-    border: 2px outset hsl(30, 60%, 70%);   
+    border: 2px outset hsl(30, 60%, 70%);
     position: absolute;
 }
 
@@ -137,7 +139,7 @@ html, body {
   opacity: 0.7;
 }
 
-.codearea {    
+.codearea {
     background: #ddd;
     overflow: auto;
     font-family: 'Monaco','Menlo','Ubuntu Mono','Droid Sans Mono','Consolas',monospace;
@@ -165,38 +167,42 @@ html, body {
     display: none;
     pointer-events: none;
 }
-#outputarea {
-    width: 1%;
-    height: 100%;
-    order: 3;
-    -webkit-order: 3;
-    -ms-flex-order: 3;
-    position: absolute;
+.outputarea {
+    width: 60%;
+    height: 90%;
+    left: 20%;
+    top: 5%;
+    position: relative;
+    z-index: 1005;
 }
-#outputarea textarea {
-    /* margin-top: 260px; */
+.outputarea textarea {
     height: 100%;
-    /*width: 240px;*/
     width: 100%;
     fill-opacity: 0;
-    z-index: 6;
+    z-index: 1005;
     border:none;
+    position: absolute;
+    left: 0;
+    top: 0;
 }
-#standard-canvas {
-    z-index: 5;
-    /* border: 1px solid black; */
-    position: absolute;    
+.standard-canvas {
+    z-index: 1006;
+    position: relative;
     width: 100%;
     height: 100%;    
-    transition: width 0.5s, height 0.5s, left 0.5s, top 0.5s;    
     pointer-events:none;
+}
+
+.code-window {
+  transition: width 0.3s, height 0.3s, left 0.3s, top 0.3s, right 0.3s, transform 0.3s;
+  box-sizing: border-box;
 }
 
 #expand-button{
   z-index: 1001; /* 1 higher than maximum tile z-Index */
   position: absolute;
   top: 50%;
-  left: -20px;  
+  left: -20px;
 }
 
 #standard-canvas.big {
@@ -209,7 +215,7 @@ html, body {
     z-index: 400;
 }
 .tile {
-    border-radius: 5px;      
+    border-radius: 5px;
 }
 .hole {
     border-radius: 5px;
@@ -217,12 +223,12 @@ html, body {
     display: inline-flex;
     display: -webkit-inline-flex;
     display: -ms-inline-flexbox;
-    width: auto;    
+    width: auto;
     min-height: 20px;
     text-align: center;
 }
 .hole:empty {
-    min-width: 30px; 
+    min-width: 30px;
 }
 input {
     border-radius: 3px;
@@ -331,21 +337,22 @@ input {
     -ms-flex-align: start;
 }
 .parameter-adder, .argument-adder {
-    font-size: 0.65em;
-    margin-bottom: 0.8em;
+    font-size: 24px;
+    /* margin-bottom: 0.8em; */
     color: #0f0;
     cursor: pointer;
-    opacity: 0;
+    /* opacity: 0; */
     transition: opacity 0.3s;
+    margin-left: 2px;
 }
-.parameter-adder:hover, .argument-adder:hover {
-    background: #0f0;
-    border-radius: 1em;
-    color: white;
-}
-.tile:hover > div > .parameter-adder, .tile:hover > .argument-adder {
-    opacity: 1.0;
-}
+/* .parameter-adder:hover, .argument-adder:hover { */
+    /* background: #0f0; */
+    /* border-radius: 1em; */
+    /* color: white; */
+/* } */
+/* .tile:hover > div > .parameter-adder, .tile:hover > .argument-adder { */
+    /* opacity: 1.0; */
+/* } */
 .shrink .parameter-adder, .shrink .argument-adder {
     display: none;
 }

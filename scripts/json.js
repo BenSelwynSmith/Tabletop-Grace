@@ -515,7 +515,7 @@ function createTileFromJSON(obj) {
     return newTile;
 }
 function createChunkFromJSON(chunk,id) {
-    console.log("Chunk: " + chunk + ", " + id);
+    tryLog("Chunk: " + chunk + ", " + id);
     if (chunk.body[0] == null)
         return;
     var tiles = Array.prototype.map.call(chunk.body, createTileFromJSON);
@@ -569,7 +569,7 @@ function loadJSON(str,id) {
                     }
             });    
     Array.prototype.forEach.call(codearea2[id].getElementsByClassName('tile'), function(el) { 
-      // console.log(el.tagName + ", " + el.parentNode.classList);      
+      tryLog(el.tagName + ", " + el.parentNode.classList);      
       tiles2[id].push(el);
       el.windex = id;
     });
@@ -640,7 +640,7 @@ function loadSample(k,id) {
                 loadJSON(ev.data.output,id);
                 checkpointSave(id);
                 // history.replaceState(generateJSObject(), "", "#sample=" + k);
-                console.log("Loading: " + loading + ", " + loading.parentNode);
+                tryLog("Loading: " + loading + ", " + loading.parentNode);
                 loading.parentNode.removeChild(loading);
                 addTileTouch(id);
             }, 50);
