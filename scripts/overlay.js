@@ -143,7 +143,7 @@ function highlightVarDefinition(el, name) {
     var varNames = [];
     var vars = [];
     var id = el.windex;
-    findVarsInScope(el, varNames, vars);
+    findVarsInScope(el, varNames, vars, id);
     var myName;
     if (name)
         myName = name;
@@ -220,7 +220,7 @@ function drawVardecLines(el) {
 function drawVarRefLines(el) {
     var varNames = [];
     var vars = [];
-    findVarsInScope(el, varNames, vars);
+    findVarsInScope(el, varNames, vars, id);
     var myName = el.childNodes[0].innerHTML;
     var defEl = false;
     for (var i=0; i<vars.length; i++) {
@@ -384,7 +384,7 @@ function findErroneousTiles(reasons,id) {
     if (!reasons)
         reasons = [];
     var tiles = [];
-    tryLog("fet: " + id + ", " + codearea2[id]);
+    // console.log("fet: " + id + ", " + codearea2[id]);
     var emptyHoles = codearea2[id].querySelectorAll(".hole:empty");
     for (var i=0; i<emptyHoles.length; i++) {
         tiles.push(emptyHoles[i]);
@@ -418,7 +418,7 @@ function findErroneousTiles(reasons,id) {
             reasons.push("You need to choose a variable name");
         } else {
             var vars = [];
-            findVarsInScope(varNames[i], vars, []);
+            findVarsInScope(varNames[i], vars, [], id);
             var found = false;
             for (var j=0; j<vars.length; j++)
                 if (vars[j] == varNames[i].innerHTML)
@@ -558,22 +558,22 @@ function arrowOffscreenTiles(tiles,id) {
         var xy = findOffsetTopLeft(tile);
         if (xy.top > codearea2[id].scrollTop + codearea2[id].offsetHeight) {
             if (!arrows['down'])
-                arrows['down'] = createOffscreenArrow('down');
+                arrows['down'] = createOffscreenArrow('down',id);
         } else if (xy.top + tile.offsetHeight < codearea2[id].scrollTop) {
             if (!arrows['up'])
-                arrows['up'] = createOffscreenArrow('up');
+                arrows['up'] = createOffscreenArrow('up',id);
         } else if (xy.left > codearea2[id].scrollLeft + codearea2[id].offsetWidth) {
             if (!arrows['right'])
-                arrows['right'] = createOffscreenArrow('right');
+                arrows['right'] = createOffscreenArrow('right',id);
         } else if (xy.left + tile.offsetWidth < codearea2[id].scrollLeft) {
             if (!arrows['left'])
-                arrows['left'] = createOffscreenArrow('left');
+                arrows['left'] = createOffscreenArrow('left',id);
         }
     }
     return arrows;
 }
 function highlightTileErrors(tiles,id) {
-    tryLog("hte: " + id);
+    // // console.log("hte: " + id);
     if (!tiles)
         var tiles = findErroneousTiles(null,id);
     if (tiles.length > 0) {
@@ -672,13 +672,12 @@ function findMutableVarsInScope(el, accum, elAccum) {
         e = e.prev;
     }
     // Then go out
-    if (el.parentNode != codearea2[id])
+    if (!el.parentNode.classList.contains("codearea")) // != codearea2[id])
         findMutableVarsInScope(el.parentNode, accum, elAccum);
 }
-function findVarsInScope(el, accum, elAccum) {  
+function findVarsInScope(el, accum, elAccum, id) {  
     // First go up
-    var e = el;
-    var id = el.windex;
+    var e = el;    
     if (e.classList.contains('method')) {
         var argInputs = e.childNodes[0].getElementsByClassName('variable-name');
         for (var i=0; i<argInputs.length; i++) {
@@ -744,7 +743,7 @@ function findVarsInScope(el, accum, elAccum) {
     }
     // Then go out
     if (el.parentNode != codearea2[id])
-        findVarsInScope(el.parentNode, accum, elAccum);
+        findVarsInScope(el.parentNode, accum, elAccum, id);
     else {
         // All top-level classes are always in scope
         var classes = codearea2[id].getElementsByClassName('class');
@@ -763,10 +762,11 @@ function findDefiniteValue(tile) {
         return tile;
     if (!tile.classList.contains("var"))
         return null;
+    var id = tile.windex;
     var varName = tile.getElementsByClassName('var-name')[0].innerHTML;
     var vars = [];
     var varEls = [];
-    findVarsInScope(tile, vars, varEls);
+    findVarsInScope(tile, vars, varEls, id);
     for (var i=0; i<vars.length; i++) {
         if (vars[i] == varName)
             break;
@@ -779,7 +779,7 @@ function findDefiniteValue(tile) {
     var hole = defEl.getElementsByClassName('hole')[0];
     if (!hole.lastChild)
         return null;
-    return findDefiniteValue(hole.lastChild);
+    return findDefiniteValue(hole.lastChild,id);
 }
 var overlaidError = document.createElement('div');
 overlaidError.classList.add('overlaid-error');

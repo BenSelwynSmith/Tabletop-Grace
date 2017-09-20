@@ -2,7 +2,7 @@
 var shrinkFuncs = [];
 var growFuncs = [];
 function shrink(id) {
-    tryLog("Shrink: " + id);
+    // console.log("Shrink: " + id);
     if (codearea2[id].viewChange) { return; }
     if (highlightTileErrors(null,id))
         return;
@@ -50,7 +50,7 @@ function shrink(id) {
             }
             runningTop += offset;
         }
-        tryLog("Ace ID: " + id + ", " + windows[id].rid);
+        // console.log("Ace ID: " + id + ", " + windows[id].rid);
         if (windows[id].rid == 1 || windows[id].rid == 2) {
           fixAce(id);
         }

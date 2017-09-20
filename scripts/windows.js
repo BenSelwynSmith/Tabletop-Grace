@@ -100,20 +100,21 @@ function windowsSetup() {
 
 
     //Hijack canvas context functions and use them to determine when a program ends.
-    var ctx = canvas2[i].getContext('2d');
+    var ctx = canvas2[i].getContext('2d');    
+    ctx.fillRect = ctx.clearRect;
     ctx.stroke2 = ctx.stroke;
     ctx.fill2 = ctx.fill;
     ctx.idx = i;
     ctx.stroke = function() {
       this.stroke2();
       minigraceWindowCall[this.idx] = 1;
-      if (spam) console.log("Canvas: " + this.idx + ", " + minigraceWindowCall);
+      // if (spam)  console.log("Canvas: " + this.idx + ", " + minigraceWindowCall);
       weakTerminationChecker(this.idx);
     }
     ctx.fill = function() {
       this.fill2();
       minigraceWindowCall[this.idx] = 1;
-      if (spam) console.log("Canvas: " + this.idx + ", " + minigraceWindowCall);
+      // if (spam)  console.log("Canvas: " + this.idx + ", " + minigraceWindowCall);
       weakTerminationChecker(this.idx);
     }
     //Output for Textarea is handled in setup.js
@@ -143,11 +144,11 @@ function windowsSetup() {
 
 
   //Test Code
-  windowMenuClick(0,1,1);
-  windowMenuClick(1,2,1);
-  mouse = 1;
-  showSecMenu(400,300,0);
-  showSecMenu(900,200,1);
+  // windowMenuClick(0,1,1);
+  // windowMenuClick(1,2,1);
+  // mouse = 1;
+  // showSecMenu(400,300,0);
+  // showSecMenu(900,200,1);
 
 
   // testSetup(1);
@@ -191,14 +192,19 @@ function windowsSetup() {
   // document.getElementById('standard-canvas').getContext("2d").clearRect = function() { };
 }
 
-function tryLog(msg) {
-  if (debug) {
-    console.log(msg);
-  }
+function fakeDownload(id) {
+  var event = new MouseEvent('click');
+  document.getElementById('downloadlink' + id).dispatchEvent(event);
 }
 
+// function // console.log(msg) {
+  // if (debug) {
+    // // console.log(msg);
+  // }
+// }
+
 function scrollTest(id) {
-  tryLog("0 Scroll: " + codearea2[id].scrollWidth + ", " + codearea2[id].scrollHeight + " vs " + codearea2[id].offsetWidth + ", " + codearea2[id].offsetHeight);
+  // console.log("0 Scroll: " + codearea2[id].scrollWidth + ", " + codearea2[id].scrollHeight + " vs " + codearea2[id].offsetWidth + ", " + codearea2[id].offsetHeight);
 }
 
 
@@ -266,7 +272,7 @@ function weakTerminationChecker(windex) {
   if (minigraceRunning[windex] == 0) { return; }
   minigraceTermination[windex]++;
   var t = minigraceTermination[windex];
-  tryLog("MGT: " + minigraceTermination[windex] + ", " + t);
+  // // console.log("MGT: " + minigraceTermination[windex] + ", " + t);
   setTimeout(function() {
     if (t == minigraceTermination[windex]) {
       console.log("Termination." + windex);
@@ -355,7 +361,7 @@ function mgtCollect(func) {
           var f = minigraceActiveFunctions[i];
           // console.log("i: " + i + ", idx: " + idx + ", mgtT: " + minigraceTerminationTarget[idx]);
           if (minigraceTerminationTarget[idx] == 0) {
-            //Continue
+            // Continue
             // console.log("Releasing Function: " + i + ", idx: " + idx);
             // setTimeout(function() {
             minigrace.trapErrorsFunc(f);
@@ -373,7 +379,7 @@ function mgtCollect(func) {
 
     //Release first/next function
     var f = minigraceActiveFunctions[minigraceLastWindow];
-    // console.log("Releasing Function: " + minigraceLastWindow);
+    // // console.log("Releasing Function: " + minigraceLastWindow);
     minigraceActiveFunctions[minigraceLastWindow] = null;
     minigrace.trapErrorsFunc(f);
   }
@@ -392,7 +398,7 @@ function moveTileToWindow(origin, target, tile) {
   //Find all tiles in scope
   //Remove from origin
   //Add to target
-  tryLog("Moving Tiles from " + w0 + "(" + origin + ") to "  + w1 + "(" + target + ") : " + tile);
+  // console.log("Moving Tiles from " + w0 + "(" + origin + ") to "  + w1 + "(" + target + ") : " + tile);
   var tiles = [];
   var top = tile;
   while (true) {
@@ -404,7 +410,7 @@ function moveTileToWindow(origin, target, tile) {
   }
 
   findAllTiles(tile, tiles, 0);
-  tryLog("Tiles found: " + tiles.length);
+  // console.log("Tiles found: " + tiles.length);
   // Array.prototype.forEach.call(tiles,function (el) {
     // el.style.border = "Solid 3px";
   // });
@@ -414,7 +420,7 @@ function moveTileToWindow(origin, target, tile) {
     if (tiles[i].parentNode == codearea2[origin]) {
       codearea2[target].appendChild(tiles[i]);
     }
-    tryLog(tiles[i] + ", " + tiles[i].windex);
+    // console.log(tiles[i] + ", " + tiles[i].windex);
   }
 
   tiles2[origin] = [];
@@ -470,19 +476,20 @@ function findAllTiles(tile, list, dir) {
 
 
 function codeRunningToggle(windex,b) {
+  if (windex == null) { return; }
   if (b) {
-    Array.prototype.forEach.call(codearea2[windex].getElementsByClassName('goPie'), function(el) {
+    Array.prototype.forEach.call(windows[windex].getElementsByClassName('goPie'), function(el) {
       el.style.fill = 'red';
     });
-    Array.prototype.forEach.call(codearea2[windex].getElementsByClassName('goPieText'), function(el) {
+    Array.prototype.forEach.call(windows[windex].getElementsByClassName('goPieText'), function(el) {
       el.textContent = "■";
       el.style.fontSize = "50px";
     });
   } else {
-    Array.prototype.forEach.call(codearea2[windex].getElementsByClassName('goPie'), function(el) {
+    Array.prototype.forEach.call(windows[windex].getElementsByClassName('goPie'), function(el) {
       el.style.fill = 'black';
     });
-    Array.prototype.forEach.call(codearea2[windex].getElementsByClassName('goPieText'), function(el) {
+    Array.prototype.forEach.call(windows[windex].getElementsByClassName('goPieText'), function(el) {
       el.textContent = String.fromCharCode(9658);
       el.style.fontSize = "30px";
     });
@@ -511,10 +518,10 @@ function expandOutput(id) {
   } else {
     o.style.display = "none";
     if (minigraceRunning[id]) {
-      Array.prototype.forEach.call(codearea2[id].getElementsByClassName('goPie'), function(el) {
+      Array.prototype.forEach.call(windows[id].getElementsByClassName('goPie'), function(el) {
         el.style.fill = 'gold';
       });
-      Array.prototype.forEach.call(codearea2[id].getElementsByClassName('goPieText'), function(el) {
+      Array.prototype.forEach.call(windows[id].getElementsByClassName('goPieText'), function(el) {
       el.textContent = "\uE70A";
       el.style.fontSize = "40px";
       });
@@ -523,56 +530,6 @@ function expandOutput(id) {
 }
 
 
-
-function testSetup(i) {
-  // if (i == 1) {
-    // for (var a = 1; a < 4; a++) {
-      // windows[a].style.display = "none";
-    // }
-    // windows[0].style.display = "";
-    // windows[0].style.left = "0%";
-    // windows[0].style.top = "0%";
-    // windows[0].style.width = "100%";
-    // windows[0].style.height = "100%";
-  // } else if (i == 2) {
-    // for (var a = 2; a < 4; a++) {
-      // windows[a].style.display = "none";
-    // }
-    // for (var a = 0; a < 2; a++) {
-      // windows[a].style.display = "";
-      // windows[a].style.top = "0%";
-      // windows[a].style.width = "50%";
-      // windows[a].style.height = "100%";
-      // windows[a].style.transform = "";
-    // }
-    // windows[0].style.left = "0%";
-    // windows[1].style.left = "50%";
-  // } else if (i == 3) {
-    // for (var a = 0; a < 3; a++) {
-      // windows[a].style.display = "";
-      // windows[a].style.top = "0%";
-      // windows[a].style.width = "33%";
-      // windows[a].style.height = "100%";
-      // windows[a].style.transform = "";
-    // }
-    // windows[0].style.left = "0%";
-    // windows[1].style.left = "33%";
-    // windows[2].style.left = "66%";
-    // windows[3].style.width = "34%";
-  // } else if (i == 4) {
-    // for (var a = 0; a < 4; a++) {
-      // windows[a].style.display = "";
-      // windows[a].style.top = "0%";
-      // windows[a].style.width = "25%";
-      // windows[a].style.height = "100%";
-      // windows[a].style.transform = "";
-    // }
-    // windows[0].style.left = "0%";
-    // windows[1].style.left = "25%";
-    // windows[2].style.left = "50%";
-    // windows[3].style.left = "75%";
-  // }
-}
 
 function testScaleWindow(s) {
   scaleWindow(s,windows[0]);
@@ -587,15 +544,11 @@ function propComparator(prop) {
 function bringToFront(t) {
 }
 
-
-
 function clearCode(b,id) {
-  tryLog("ClearCode");
-  // for (var i = tiles2[id].length; i--; ) {
-    // tiles2[id][i].remove();
-  // }
+  // console.log("ClearCode");
+  
   var children = codearea2[id].children;
-  tryLog(children.length);
+  // console.log(children.length);
   for (var i = 0; i < codearea2[id].children.length; i++) {
     if (children[i].classList.contains('tile')) {
       codearea2[id].removeChild(children[i]);
@@ -603,24 +556,20 @@ function clearCode(b,id) {
     }
   }
   tiles2[id] = [];
-  if (!b) {
+  // if (!b) {
     generateCode(id);
-  }
-  // var pie = codearea2[id].getElementsByClassName('errorPie');
-  // for (var i = 0; i < pie.length; i++) {
-    // pie[i].setAttribute('style.fill', 'green');
   // }
+  
 
   Array.prototype.forEach.call(codearea2[id].getElementsByClassName('errorPie'), function(el) {
     el.style.fill = 'green';
   });
+  
 }
 
 
 
-function clearOutput(id) {
-  // var c = document.getEzlementById("standard-canvas");
-  // var t = document.getElementById("stdout_txt");
+function clearOutput(id) {  
   text2[id].value = "";
   var context = canvas2[id].getContext("2d");
   context.clearRect(0, 0, canvas2[id].width, canvas2[id].height);
@@ -643,9 +592,9 @@ function moveWindow(x,y) {
 }
 
 function scaleWindow(s,t) {
-  tryLog("Scale: " + s);
+  // console.log("Scale: " + s);
   var f = window.frameElement || t;
-  tryLog("Window: " + f);
+  // console.log("Window: " + f);
   if (f) {
     var w, h, l, t;
     if (!scaled) {
@@ -659,12 +608,12 @@ function scaleWindow(s,t) {
       h = parseFloat(f.style.height);
       l = parseFloat(f.style.left);
       t = parseFloat(f.style.top);
-      tryLog("Scale: " + w + "," + h + "," + l + "," + t);
+      // console.log("Scale: " + w + "," + h + "," + l + "," + t);
     }
 
     f.style.width = w + s + "px";
     f.style.height = h + s + "px";
-    tryLog("WH: " + w + "," + h + " - " + f.style.width + "," + f.style.height);
+    // console.log("WH: " + w + "," + h + " - " + f.style.width + "," + f.style.height);
 
     f.style.left = (l - s *.5) + "px";
     f.style.top = (t - s *.5) + "px";
@@ -677,23 +626,20 @@ function testRotateWindow(s) {
 
 function rotateWindow(s,t) {
   var f = window.frameElement || t;
-  tryLog("Window: " + f);
+  // console.log("Window: " + f);
   if (f) {
     if (isNaN(f.rot)) {
       f.rot = 0;
     }
     var r = f.rot + s;
     f.style.transform = "rotate(" + r + "deg)";
-    tryLog("R:" + f.rot + "," + r);
+    // console.log("R:" + f.rot + "," + r);
     f.rot = r % 360;
   }
 }
 
-
-
-
 function addBlockWindow(id) {
-  tryLog("addBlockWindow " + id);
+  // console.log("addBlockWindow " + id);
   var w = 1920/1080;
   var h = 1080/1920;
   if (windowCount < windowMax) {
@@ -775,7 +721,7 @@ function closeWindowMenu(id) {
 
 
 function showWindowMenu2(event,x,y) {
-  tryLog(event.target);
+  // console.log(event.target);
   var target = event.target;
   if (!event.target) {
     target = document.getElementById('svg_' + event);
@@ -787,7 +733,7 @@ function showWindowMenu2(event,x,y) {
   var y = y | event.clientY;
 
   var id = parseInt(target.getAttribute("id").slice(-1));
-  tryLog("SWM2: " + x + ", " + y + ", " + id);
+  // console.log("SWM2: " + x + ", " + y + ", " + id);
   var svg0 = document.getElementById('window_svg');
   var svg = svg0.cloneNode(true);
   svg.removeAttribute('id');
@@ -810,8 +756,8 @@ function showWindowMenu2(event,x,y) {
   var sh2 = 100;
   var wh = h/w;
   var min = 0;
-  tryLog("sw2: " + sw2);
-  tryLog("wh: " + wh);
+  // console.log("sw2: " + sw2);
+  // console.log("wh: " + wh);
   var gap = "0px";
 
   if (id == 0 || id == 3) {
@@ -876,7 +822,7 @@ function windowMenuClick(idx,rid,state,pos) {
   var r = false;
   var arrange = 0;
   if (windows[idx].rid != null && windows[idx].rid == rid) { r = true; }
-  tryLog("Idx: " + idx + ", rid: " + rid + ", " + r + ", " + windows[idx].rid + ", " + (windows[idx].rid == rid));
+  // console.log("Idx: " + idx + ", rid: " + rid + ", " + r + ", " + windows[idx].rid + ", " + (windows[idx].rid == rid));
   //Show Window
   if (windows[idx].style.display == "none") {
     if (state == 1) {
@@ -891,14 +837,14 @@ function windowMenuClick(idx,rid,state,pos) {
   if (state == 1) {
     if (r && !arrange) {
       //Tap -> Toggle Maximise
-      tryLog("Window: " + idx + ", Rotation: " + rid + " -> Toggle Maximise");
+      // console.log("Window: " + idx + ", Rotation: " + rid + " -> Toggle Maximise");
       maximiseWindowToggle(idx);
     } else {
       //Tap -> Rotate
       setRotation(idx,rid);
       windows[idx].pos = pos;
       arrange = 1;
-      tryLog("Window: " + idx + ", Rotation: " + rid + " -> Rotate");
+      // console.log("Window: " + idx + ", Rotation: " + rid + " -> Rotate");
     }
   } else if (state == 2) {
     if (windows[idx].style.display == "") {
@@ -999,7 +945,7 @@ function arrangeWindows() {
   var winHeight = windowContainer.offsetHeight;
   var winHeight2 = winHeight * .5;
   var winTop = 0;
-  tryLog("Arrange: " + windowsActive);
+  // console.log("Arrange: " + windowsActive);
   for (var i = 0; i < windowMax; i++) {
     if (windows[i].style.display != "none") {
       widx.push(i);
@@ -1285,7 +1231,7 @@ function createWidget2() {
   // interactMode = 1;
 
   var vars = codearea.getElementsByClassName("tile");
-  tryLog("Widgets needed : " + vars.length);
+  // console.log("Widgets needed : " + vars.length);
   for (var i = 0; i < vars.length; i++) {
     // <div class="select_widget">+
     var div = document.createElement('div');

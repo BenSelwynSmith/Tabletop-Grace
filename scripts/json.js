@@ -515,7 +515,7 @@ function createTileFromJSON(obj) {
     return newTile;
 }
 function createChunkFromJSON(chunk,id) {
-    tryLog("Chunk: " + chunk + ", " + id);
+    // console.log("Chunk: " + chunk + ", " + id);
     if (chunk.body[0] == null)
         return;
     var tiles = Array.prototype.map.call(chunk.body, createTileFromJSON);
@@ -537,13 +537,8 @@ function createChunkFromJSON(chunk,id) {
     }
     
 }
-function loadJSON(str,id) {
-    // var bin = document.getElementById('bin');
-    // while (codearea.hasChildNodes())
-        // codearea.removeChild(codearea.lastChild);
+function loadJSON(str,id) {    
     clearCode(1,id);
-    // codearea.appendChild(bin);    
-    // codearea2[id].appendChild(desaturator);
     var obj = JSON.parse(str);
     var dialect = document.getElementById('dialect');
     for (var i=0; i<dialect.options.length; i++) {
@@ -569,7 +564,7 @@ function loadJSON(str,id) {
                     }
             });    
     Array.prototype.forEach.call(codearea2[id].getElementsByClassName('tile'), function(el) { 
-      tryLog(el.tagName + ", " + el.parentNode.classList);      
+      // // console.log(el.tagName + ", " + el.parentNode.classList);      
       tiles2[id].push(el);
       el.windex = id;
     });
@@ -585,14 +580,17 @@ function loadJSON(str,id) {
 function loadFile() {
     var userfile = document.getElementById('userfile');
     var reader = new FileReader();
-    reader.readAsText(userfile.files[0]);
-    reader.addEventListener("load", function() {
-        minigrace.mode = "json";
-        minigrace.compile(reader.result);
-        minigrace.mode = "js";
-        loadJSON(minigrace.generated_output);
-        checkpointSave();
-    });
+    var id = userfile.idx;
+    if (userfile.files[0]) {
+      reader.readAsText(userfile.files[0]);
+      reader.addEventListener("load", function() {
+          minigrace.mode = "json";
+          minigrace.compile(reader.result);
+          minigrace.mode = "js";
+          loadJSON(minigrace.generated_output,id);
+          checkpointSave(id);
+      });
+    }
 }
 function loadSample(k,id) {
     if (!k || k == 'Select sample')
@@ -640,7 +638,7 @@ function loadSample(k,id) {
                 loadJSON(ev.data.output,id);
                 checkpointSave(id);
                 // history.replaceState(generateJSObject(), "", "#sample=" + k);
-                tryLog("Loading: " + loading + ", " + loading.parentNode);
+                // console.log("Loading: " + loading + ", " + loading.parentNode);
                 loading.parentNode.removeChild(loading);
                 addTileTouch(id);
             }, 50);

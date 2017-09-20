@@ -3,7 +3,6 @@ var toolbox = document.getElementById('toolbox');
 var supportsPointerEvents = false;
 var blockIndent = 0;
 var chunkLine;
-var canvasHack;
 
 function generateHash(obj) {
     return '#' + btoa(encodeURIComponent(JSON.stringify(obj)));
@@ -46,7 +45,7 @@ function isValidVariableName(varname) {
     return true;
 }
 function popupVarMenu(ev) {
-    tryLog("Popup: " + ev.target + ", " + ev.target.classList);
+    // console.log("Popup: " + ev.target + ", " + ev.target.classList);
     var el = ev.target;
     if (!el.classList.contains("var-name")) {
         el = el.children[0];
@@ -71,7 +70,7 @@ function popupVarMenu(ev) {
     if (mustBeMutable)
         findMutableVarsInScope(el, vars, []);
     else
-        findVarsInScope(el, vars, []);
+        findVarsInScope(el, vars, [], windex);
     for (var i=0; i<vars.length; i++) {
         var opt = document.createElement('li');
         opt.innerHTML = vars[i];
@@ -102,7 +101,7 @@ function popupVarMenu(ev) {
         opt.title = msg;
         opt.addEventListener("click", function(ev) {
             codearea2[windex].removeChild(menu);
-            alert(msg);
+            // alert(msg);
         });
         menu.appendChild(opt);
     }
@@ -429,38 +428,31 @@ function go(id) {
         return;
     }
     
-    // if (minigraceRunning[id]) { 
-      // minigrace.stopRunning = 1;
-      // return;
-    // }
+    
     
     generateCode(id);
     document.getElementById('stderr_txt').value = "";
     //document.getElementById('stdout_txt').value = "";
 
-    if (!canvasHack) {
-      document.getElementById('standard-canvas').getContext('2d').fillRect = document.getElementById('standard-canvas').getContext('2d').clearRect;
-      canvasHack = 1;
-    }
+    
 
     resizeCanvas(id);
     
     minigraceRunning[id] = 1;
+    codeRunningToggle(id,1);
     minigraceTermination[id] = 0;
     minigraceActiveInstances++;
-    console.log("Running: " + id + ", mgAI: " + minigraceActiveInstances);
+    
     
     minigrace.modname = "main";
-    minigrace.windex = id;
-    // var getCode = makeGetCodeFunc(id);
-    outputSwap(id,1);
-    minigrace.compilerun(getCode[id]());
-    outputSwap(id,0);
-    codeRunningToggle(id,1);
-    // minigraceRunning = 1;
-    // minigraceTermination = 0;
-    // weakTerminationChecker();
+    minigrace.windex = id;    
     
+    setTimeout(function() {            
+      outputSwap(id,1);
+      minigrace.compilerun(getCode[id]());    
+      outputSwap(id,0);
+      weakTerminationChecker(id);
+    }, 10);
 }
 var theBrowser = 'unknown';
 if (navigator.userAgent.search('Chrome') != -1) {

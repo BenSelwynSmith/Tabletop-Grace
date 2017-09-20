@@ -39,7 +39,7 @@ function closeAllMenus(id,scope) {
 }
 
 function showTileMenu(x,y,src) {
-  tryLog("ShowTileMenu: " + x + "," + y);
+  // console.log("ShowTileMenu: " + x + "," + y);
   //Delete + Copy
   var svg0 = document.getElementById('tile_svg');
   var svg = svg0.cloneNode(true);
@@ -360,13 +360,13 @@ function fixNextPrev(holes) {
   for (var i = 0; i < holes.length; i++) {
     for (var j = 0; j < holes[i].children.length; j++) {
       fixNextPrev(holes[i].children[j].getElementsByClassName('hole multi'));
-      
+
       if (j == 0) {
         holes[i].children[j].prev = false;
       } else {
         holes[i].children[j].prev = holes[i].children[j-1];
       }
-      
+
       if (j + 1 == holes[i].children.length) {
         holes[i].children[j].next = false;
       } else {
@@ -382,6 +382,7 @@ function cloneTile (event, tile, b) {
   var svg = event.target.parentNode;
   var tmp = tile;
 
+  
   while (!tmp.classList.contains('tile')) {
     tmp = tmp.parentNode;
   }
@@ -391,6 +392,7 @@ function cloneTile (event, tile, b) {
   addTileTouchToTile(newTile);
   newTile.prev = false;
   newTile.next = false;
+  var xy = findOffsetTopLeft(tile);
   var tileChildren = newTile.getElementsByClassName('tile');
   for (var i=0; i<tileChildren.length; i++) {
     if (tileChildren[i].classList.contains('tile')) {
@@ -398,17 +400,29 @@ function cloneTile (event, tile, b) {
       addTileTouchToTile(tileChildren[i]);
     }
   }
-  
+
   // var holesO = tile.getElementsByClassName('hole multi');
   var holesN = newTile.getElementsByClassName('hole multi');
   fixNextPrev(holesN);
+    
   
-  
-  
+  var left = tile.offsetLeft;
+  var top = tile.offsetTop;
+  var p = tile.offsetParent;
+  while (!p.classList.contains('codearea')) {    
+    left += p.offsetLeft;
+    top  += p.offsetTop;
+    p = p.offsetParent;
+  }
+    
 
 
-  newTile.style.left = tile.offsetLeft + 10 + 'px';
-  newTile.style.top = tile.offsetTop + 10 + 'px';
+  // newTile.style.left = tile.offsetLeft + 10 + 'px';
+  // newTile.style.top = tile.offsetTop + 10 + 'px';
+  // console.log("xy: " + left + ", " + top);  
+  newTile.style.left = left + 10 + 'px';
+  newTile.style.top = top + 10 + 'px';
+  newTile.style.position = "absolute";
   tiles2[tile.windex].push(newTile);
   Array.prototype.forEach.call(newTile.getElementsByClassName('tile'), function(el) {
     tiles2[tile.windex].push(el);
@@ -428,7 +442,7 @@ function deleteTile (event, tile) {
   var svg = event.target.parentNode;
   var tmp = tile;
   var windex = tile.windex;
-  tryLog("Delete Tile: " + tile.classList + " - " + event.target.tagName);
+  // console.log("Delete Tile: " + tile.classList + " - " + event.target.tagName);
   while (!tmp.classList.contains('tile')) {
     tmp = tmp.parentNode;
   }
@@ -445,7 +459,7 @@ function deleteTile (event, tile) {
   // }
   tiles2[windex] = [];
   Array.prototype.forEach.call(codearea2[windex].getElementsByClassName('tile'), function(el) {
-      tryLog(el.tagName + ", " + el.parentNode.classList);
+      // console.log(el.tagName + ", " + el.parentNode.classList);
       tiles2[windex].push(el);
     });
   updateTileIndicator(windex);
@@ -478,7 +492,7 @@ function cloneSVG(target,x,y,id,cl) {
 function showPieMenu(x,y,id) {
   if (id < 0 || id > 3) { return; }
   var pos;
-  tryLog("ShowPieMenu: " + x + ", " + y + ", " + windows[id].rid);
+  // console.log("ShowPieMenu: " + x + ", " + y + ", " + windows[id].rid);
   if (windows[id].rid != 0) {
     pos = rotateXY(id,windows[id].rid, x, y);
   } else {
@@ -486,11 +500,11 @@ function showPieMenu(x,y,id) {
   }
   x = pos[0];
   y = pos[1];
-  
+
   x += codearea2[id].scrollLeft;
   y += codearea2[id].scrollTop;
-  
-  tryLog("ShowPieMenu: " + x + ", " + y + ", " + windows[id].rid);
+
+  // console.log("ShowPieMenu: " + x + ", " + y + ", " + windows[id].rid);
   createPieMenu(cloneSVG('pie_svg',x,y,id,"pie piemenu"));
 }
 
@@ -504,13 +518,15 @@ function showSecMenu(x,y,id) {
   }
   x = pos[0];
   y = pos[1];
+  var svg;
   if (codearea2[id].style.visibility == "hidden") {
+    svg = cloneSVG('sec_svg',x,y,id,"sec piemenu");
     editor4[id].appendChild(svg);
   } else {
     x += codearea2[id].scrollLeft;
     y += codearea2[id].scrollTop;
+    svg = cloneSVG('sec_svg',x,y,id,"sec piemenu");
   }
-  var svg = cloneSVG('sec_svg',x,y,id,"sec piemenu");
   createSecondaryMenu(svg);
 
 }
@@ -521,7 +537,7 @@ function closePieMenu(event) {
   var elem = event.target;
   if (!elem.parentNode) { return; }
 
-  tryLog("closePie: " + elem.tagName);
+  // console.log("closePie: " + elem.tagName);
   //Get containing SVG
   while (elem.tagName != "svg" && elem.parentNode != null) {
     elem = elem.parentNode;
@@ -529,7 +545,7 @@ function closePieMenu(event) {
 
   var timeDif = Date.now() - elem.getAttribute("ts");
   if (timeDif > closePieDelay) {
-    window.setTimeout(function() { 
+    window.setTimeout(function() {
       if (elem.parentNode) {
         elem.parentNode.removeChild(elem);
       }
@@ -563,7 +579,7 @@ function closeTileMenu(event, svg) {
 
 function createPieMenu(svg) {
   //Find all tiles and create pie menu from them
-  tryLog("Create pie menu: " + svg);
+  // console.log("Create pie menu: " + svg);
   var tmp = toolbox.getElementsByClassName('tile');
   var cats = [];
   var catTile = [];
@@ -664,9 +680,9 @@ function createPie(svg, tileGroups) {
 }
 
 function createExtendMenus(tileGroup,idx,svg) {
-  tryLog(idx);
+  // console.log(idx);
   var p = tileGroup.count;
-  tryLog("TileGroupIdx: " + tileGroup.idx);
+  // console.log("TileGroupIdx: " + tileGroup.idx);
   segAngle = start + idx * max / pieces + max / pieces / 2;
   defSize = 40;
   seg = maxPie/p;
@@ -700,7 +716,7 @@ function createExtendSec(svg,idx,txtData,start) {
   var windex = svg.windex;
 
   var left = start - seg * p *.5;
-  tryLog("ext: " + txtData + "," + start + "," + seg + "," + left);
+  // console.log("ext: " + txtData + "," + start + "," + seg + "," + left);
 
   var p1 = [x0,y0-r];
   var p2 = [x0,y0-r-r2];
@@ -712,7 +728,7 @@ function createExtendSec(svg,idx,txtData,start) {
     var ang2 = ang + seg;
     var p3R = rotatePoint(x0,y0,ang2*rad,p2[0],p2[1]);
     var p4R = rotatePoint(x0,y0,ang2*rad,p1[0],p1[1]);
-    tryLog("ext: " + (ang) + "," + (ang2));
+    // console.log("ext: " + (ang) + "," + (ang2));
 
 
     var data =  "M " + p1R[0] + " " + p1R[1] + " ";
@@ -791,7 +807,7 @@ function createExtendSec(svg,idx,txtData,start) {
         tileList = [];
         closeAllMenus(-1);
       });
-      newElement.addEventListener("touchend", function(event) {        
+      newElement.addEventListener("touchend", function(event) {
         var d = document.getElementById("dialect");
         d.value = d.options[event.target.idx].value;
         curDialect = event.target.idx;
@@ -829,7 +845,7 @@ function createExtendSec(svg,idx,txtData,start) {
         d.value = d.options[event.target.idx+1].value;
         // curSample = event.target.idx;
         closeAllMenus(windex);
-        tryLog("Loading: " + d.value);
+        // console.log("Loading: " + d.value);
         loadSample(d.value,windex);
         // addTileTouch();
         checkpointSave(windex);
@@ -839,7 +855,7 @@ function createExtendSec(svg,idx,txtData,start) {
         var d = document.getElementById("samples");
         d.value = d.options[event.target.idx+1].value;
         closeAllMenus(windex);
-        tryLog("Loading: " + d.value);
+        // console.log("Loading: " + d.value);
         loadSample(d.value,windex);
         checkpointSave(windex);
       });
@@ -880,8 +896,8 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
   //'pie' + idx -> Pie Menu Outer Section
 
   if (c == 2) {
-    tryLog(rx + "," + ry + "," + rad1 + "," + rad2 + "," + a1 + "," + a2 + "," + svg +
-    "," + idx + "," + c + "," + idx2 + "," + c2);
+    // console.log(rx + "," + ry + "," + rad1 + "," + rad2 + "," + a1 + "," + a2 + "," + svg +
+    // "," + idx + "," + c + "," + idx2 + "," + c2);
   }
   a1 = a1 % 360;
   var windex = svg.windex;
@@ -902,7 +918,7 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
   var a2r = (a1+a2) * rad;
 
   if (idx == 0) {
-    tryLog("ext: " + a1 + "," + a2 + "," + (a1+a2*.5));
+    // console.log("ext: " + a1 + "," + a2 + "," + (a1+a2*.5));
   }
 
   p1xR = Math.round(((p1x1) * Math.cos(a1r) - (p1y1) * Math.sin(a1r)) - dx);
@@ -942,7 +958,7 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
     //Draw the secondary menu text using SVG textPath
     var other = 0;
     if (c != 2 && c != -2) {
-      tryLog("A: " + a1 + "," + a2);
+      // // console.log("A: " + a1 + "," + a2);
     }
     if (a1 >= 90 && a1 < 270) {
       data = "M " + p3xR + " " + p3yR + " ";
@@ -1003,7 +1019,7 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
         tileText = tileText.toUpperCase();
         tileText = tileText.trim();
         if (tileText == "IF" && idx2 == 19) { tileText = "IF ELSE"; }
-        tryLog(tileText + ", " + idx + ", " + idx2);
+        // // console.log(tileText + ", " + idx + ", " + idx2);
 
         txtElem = document.createTextNode(tileText);
 
@@ -1026,8 +1042,8 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
         // a.setAttribute("download",dl.getAttribute("download"));
         a.appendChild(newElement);
         // a.setAttribute("class","downloadlink2"+windex);
-        a.addEventListener("click", function() { if (mouse) expandSecMenu(svg,idx); });
-        a.addEventListener("touchend", function() { expandSecMenu(svg,idx); });
+        a.addEventListener("click", function() { if (mouse) expandSecMenu(svg,idx); fakeDownload(svg.windex)});
+        a.addEventListener("touchend", function() { expandSecMenu(svg,idx); fakeDownload(svg.windex)});
         svg.appendChild(a);
       } else {
         svg.appendChild(newElement);
@@ -1052,6 +1068,7 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
       } else if (idx == 1) {
         //Run Code
         newElement.addEventListener("click", function() {
+          if (!mouse) { return; }
           expandSecMenu(svg,idx);
           updateTileIndicator(windex);
           if (minigraceRunning[windex]) {
@@ -1063,7 +1080,7 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
                 minigraceTerminationCounter = 1;
               }
               minigraceTerminationTarget[windex] = 1;
-              
+
               setTimeout(minigraceStopCheck,600)
               return;
             }
@@ -1075,8 +1092,7 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
             go(windex);
           }
         });
-        newElement.addEventListener("touchend", function() {
-          // console.trace();
+        newElement.addEventListener("touchend", function() {          
           expandSecMenu(svg,idx);
           updateTileIndicator(windex);
           if (minigraceRunning[windex]) {
@@ -1089,7 +1105,7 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
                 minigraceTerminationCounter = 1;
               }
               minigraceTerminationTarget[windex] = 1;
-              
+
               setTimeout(minigraceStopCheck,600)
               return;
             }
@@ -1138,14 +1154,31 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
         });
       } else if (idx == 3) {
         //Load File
-        newElement.addEventListener("click", function() { if (!mouse) { return; } expandSecMenu(svg,idx); document.getElementById("userfile").click(); closeSecondaryMenu(svg) });
-        newElement.addEventListener("touchend", function() { expandSecMenu(svg,idx); document.getElementById("userfile").click(); closeSecondaryMenu(svg) });
+        newElement.addEventListener("click", function(event) {
+          if (!mouse) { return; }
+          expandSecMenu(svg,idx);
+          var idx = svg.windex;
+          var uf = document.getElementById("userfile");
+          uf.idx = idx;
+          uf.value = "";
+          uf.click();          
+          closeSecondaryMenu(svg);
+        });
+        newElement.addEventListener("touchend", function(event) {
+          expandSecMenu(svg,idx);
+          var idx = svg.windex;
+          var uf = document.getElementById("userfile");
+          uf.idx = idx;
+          uf.value = "";
+          uf.click();
+          closeSecondaryMenu(svg);
+        });
       } else if (idx == 5) {
         //Expand menu - sample
         var txt = document.getElementById("samples").options;
         txt = Array.from(txt);
         txt = txt.slice(1,txt.length);
-        tryLog(txt);
+        // console.log(txt);
         createExtendSec(svg,idx,txt,a1+a2*.5);
 
 
@@ -1170,7 +1203,7 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
         newElement.setAttribute("class", "errorPie");
         if (errorTiles2[windex] == null) {
           updateTileIndicator(windex);
-        }        
+        }
         if (errorTiles2[windex].length > 0) {
           newElement.style.fill = "red";
         } else {
@@ -1212,7 +1245,7 @@ function createPieSegment(rx,ry,rad1,rad2,a1,a2,svg,idx,c,idx2,c2) {
       var x1 = p4xR + (p3xR - p4xR) *.5;
       var y1 = p4yR + (p3yR - p4yR) *.5;
       var xy = rotatePoint(rx,ry,(-a2)*.5*rad,x1,y1);
-      tryLog("a1: " + a1 + ", a2: " + a2);
+      // console.log("a1: " + a1 + ", a2: " + a2);
 
       var textElement = document.createElementNS("http://www.w3.org/2000/svg", 'text'); //Create a path in SVG's namespace
       if (c == -3) {
@@ -1285,7 +1318,7 @@ function expandSecMenu(svg, idx) {
     }
   }
 
-  tryLog("Expand: " + svg + "," + svg.idx + "," + idx);
+  // console.log("Expand: " + svg + "," + svg.idx + "," + idx);
   var txt = "sec" + idx;
   if (idx == 0) {
     if (svg.idx != 0) {
@@ -1363,7 +1396,7 @@ function createSecondaryMenu(svg,id) {
   this.max = 360;
   this.start = -45;
   var seg = max/pieces;
-  tryLog("Pieces: " + pieces);
+  // console.log("Pieces: " + pieces);
   for (var i = 0; i < pieces; i++) {
     createPieSegment(x0,y0,120,50,start,seg,svg,i,2,options[i],oChars[i]);
     start += seg;
@@ -1391,7 +1424,7 @@ function createSecondaryMenu(svg,id) {
 }
 
 function segmentDragStart(event,windex) {
-  tryLog("S Drag Start");
+  // console.log("S Drag Start");
   var menus = codearea2[windex].getElementsByClassName('popup-menu');
   // ???
   // if (currentFocus) {
@@ -1413,13 +1446,13 @@ function segmentDragStart(event,windex) {
       segmentTouches[id].tile = tileList[target.tileIdx];
       segmentTouches[id].svg = target.parentNode;
     }
-    tryLog("S Drag Start Target:" + target + "," + segmentTouches[id].tile);
+    // console.log("S Drag Start Target:" + target + "," + segmentTouches[id].tile);
   }
   event.preventDefault();
 }
 
 function segmentDragMove(event,windex) {
-  tryLog("S Drag Move: " + event.target + "," + (event.target == (codearea2[windex])));
+  // console.log("S Drag Move: " + event.target + "," + (event.target == (codearea2[windex])));
   for (var i = 0; i < event.changedTouches.length; i++) {
     var id = event.changedTouches[i].identifier;
     //Target is always the path element
@@ -1431,11 +1464,11 @@ function segmentDragMove(event,windex) {
       if (!segmentTouches[id].ok) {
         var pos = positionCorrection([event.changedTouches[i].clientX,event.changedTouches[i].clientY],windex);
         var dist = Math.sqrt(Math.pow(pos[0] - segmentTouches[i].x, 2) + Math.pow(pos[1] - segmentTouches[i].y, 2));
-        tryLog("SegDrag: " + dist + ", " + segMoveThresholdDistance);
+        // console.log("SegDrag: " + dist + ", " + segMoveThresholdDistance);
         if (dist > segMoveThresholdDistance) {
           //#TODO
           //Start Dragging Tile
-          tryLog("Segment Drag Distance Reached");
+          // console.log("Segment Drag Distance Reached");
           segmentTouches[id].ok = 1;
           // createTile(segmentTouches[id].tile, null, event.changedTouches[id].clientX, event.changedTouches[id].clientY);
         }
@@ -1448,19 +1481,19 @@ function segmentDragMove(event,windex) {
 }
 
 function segmentDragEnd(event,windex) {
-  tryLog("S Drag End");
+  // console.log("S Drag End");
   for (var i = 0; i < event.changedTouches.length; i++) {
     var id = event.changedTouches[i].identifier;
-    tryLog("S Drag End: " + id + ", " + segmentTouches[id] + ", " + segmentTouches[id].tile);
+    // console.log("S Drag End: " + id + ", " + segmentTouches[id] + ", " + segmentTouches[id].tile);
     if (id in segmentTouches) {
       if (segmentTouches[id].ok) {
         //target is always svg element
         // if (event.target == codearea) {
           // showPieMenu(pieMenuTouches[id].x,pieMenuTouches[id].y);
-          createTile(segmentTouches[id].tile, null, event.changedTouches[id].clientX, event.changedTouches[id].clientY, event.target.parentNode.windex);
+          createTile(segmentTouches[id].tile, null, event.changedTouches[i].clientX, event.changedTouches[i].clientY, event.target.parentNode.windex);
         // }
       } else {
-          var svg = event.changedTouches[id].target;
+          var svg = event.changedTouches[i].target;
           while (svg.tagName != "svg") {
             svg = svg.parentNode;
           }
@@ -1474,25 +1507,33 @@ function segmentDragEnd(event,windex) {
 
 
 function pieExtendClick(tile, svg, event) {
-  tryLog("pieExtendClick: " + tile + ", " + svg + ", " + event + ", " + svg.windex);
+  // console.log("pieExtendClick: " + tile + ", " + svg + ", " + event + ", " + svg.windex);
   createTile(tile, svg, 0, 0, svg.windex);
   closePieMenu(event);
 }
 
 function createTile(tile, svg, x, y, id) {
-  //Based on embedded function in main.js  
+  //Based on embedded function in main.js
   if (tile.nodeType != 1) {
     tile = tileList[tile];
   }
   var xPoint, yPoint;
-  if (svg) {
-    tryLog("Tile: " + svg.xPoint + ", " + svg.yPoint + ", " + id);
-    xPoint = svg.xPoint;
-    yPoint = svg.yPoint;
-  } else {
-    tryLog("Tile: " + x + ", " + y + ", " + id);
-    xPoint = x;
-    yPoint = y;
+  
+  if (svg) {    
+    // // console.log("Tile: " + svg.xPoint + ", " + svg.yPoint + ", " + id);
+    x = svg.xPoint;
+    y = svg.yPoint;
+  } else {    
+    if (windows[id].rid != 0) {
+      pos = rotateXY(id,windows[id].rid, x, y);
+    } else {
+      pos = positionCorrection([x,y],id);
+    }
+    x = pos[0];
+    y = pos[1];
+    x += codearea2[id].scrollLeft;
+    y += codearea2[id].scrollTop;
+    // // console.log("Tile: " + x + ", " + y + ", " + id);
   }
 
   var cl = tile.cloneNode(true);
@@ -1505,16 +1546,9 @@ function createTile(tile, svg, x, y, id) {
   }
   codearea2[id].appendChild(cl);
   cl.style.position = 'absolute';
-  var pos;
-  if (svg) {
-    pos = [xPoint,yPoint];
-  } else {
-    pos = positionCorrection([xPoint,yPoint],cl.windex);
-  }
-  // cl.style.top = (codearea2[id].scrollTop + yPoint - tile.offsetWidth * 0.5) + "px";
-  // cl.style.left = (xPoint - tile.offsetHeight * 0.5) + 'px';
-  cl.style.left = pos[0] + "px";
-  cl.style.top = pos[1] + "px";
+ 
+  cl.style.left = x + "px";
+  cl.style.top = y + "px";
   cl.style.display = "";
   attachTileBehaviour(cl);
   tiles2[id].push(cl);
@@ -1579,7 +1613,7 @@ function createCancelButton(svg,x,y) {
 }
 
 function menuExtend(n, tile) {
-  tryLog("Menu Extend");
+  // console.log("Menu Extend");
   // console.trace();
   var currentExtend =  tile.parentNode.getAttribute('idx') || -1;
   var svg = tile.parentNode; //??

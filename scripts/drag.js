@@ -14,7 +14,7 @@ function findOffsetTopLeft(el) {
 function isBottomTarget(ch, obj) {
     if (ch.parentNode == null) { return false; }
 
-    tryLog("IsBottomTarget: " + ch + ", " + obj + ", " + ch.parentElement.classList);
+    // // console.log("IsBottomTarget: " + ch + ", " + obj + ", " + ch.parentElement.classList);
     if (ch.parentElement.classList.contains('hole')) {
         if (!ch.parentElement.classList.contains('multi')) {
             return false;
@@ -27,7 +27,7 @@ function isBottomTarget(ch, obj) {
     var p = ch.parentNode;
     var id = ch.windex;
     while (p != codearea2[id]) {
-        tryLog("isBottomTarget: " + p + ", " + p.classList);        
+        // // console.log("isBottomTarget: " + p + ", " + p.classList);        
         if (p.classList.contains('locked'))
             return false;
         p = p.parentNode;
@@ -51,11 +51,12 @@ function isBottomTarget(ch, obj) {
 
 function runOnDrop(tile) {
     if (tile.classList.contains('var')) {
+        var id = tile.windex;
         var vars = [];
         if (tile.parentNode.classList.contains('bind-lhs'))
             findMutableVarsInScope(tile, vars, []);
         else
-            findVarsInScope(tile, vars, []);
+            findVarsInScope(tile, vars, [], id);
         if (tile.childNodes[0].innerHTML == 'Variable')
             tile.childNodes[0].innerHTML = '';
         if (vars.length == 1 && tile.childNodes[0].innerHTML == '') {
@@ -105,13 +106,13 @@ function updateTileIndicator(id) {
     errorTiles2[id] = findErroneousTiles(reasons,id);
     if (errorTiles2[id].length > 0) {
         document.getElementById('indicator').style.background = 'red';
-        var err2 = document.getElementsByClassName("errorPie");
+        var err2 = windows[id].getElementsByClassName("errorPie");
         for (var i = 0; i < err2.length; i++) {
           err2[i].style.fill = "red";
         }
     } else {
         document.getElementById('indicator').style.background = 'green';
-        var err2 = document.getElementsByClassName("errorPie");
+        var err2 = windows[id].getElementsByClassName("errorPie");
         for (var i = 0; i < err2.length; i++) {
           err2[i].style.fill = "green";
         }

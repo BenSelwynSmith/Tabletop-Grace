@@ -26,19 +26,19 @@ Array.prototype.forEach.call(toolbox.getElementsByClassName('tile'),
         // codearea.removeChild(menus[i]);
 // });
 
-function indicatorDisplay(b,id) {  
+function indicatorDisplay(b,id) {
   if (b) {
-    clearPopouts(id);
-    desaturator2[id].width = overlays2[id].width = codearea2[id].offsetWidth;
-    desaturator2[id].height = overlays2[id].height = codearea2[id].offsetHeight;
-    
+    clearPopouts(id);    
+    overlays2[id].width = codearea2[id].scrollWidth;
+    overlays2[id].height = codearea2[id].scrollHeight;
+
     if (codearea2[id].style.visibility == 'hidden')
         return;
     var reasons = [];
     var tiles = findErroneousTiles(reasons,id);
     if (tiles.length > 0) {
-        desaturator2[id].style.width = codearea2[id].scrollWidth + 'px';
-        desaturator2[id].style.height = codearea2[id].scrollHeight + 'px';
+        overlays2[id].style.width = desaturator2[id].style.width = codearea2[id].scrollWidth + 'px';
+        overlays2[id].style.height = desaturator2[id].style.height = codearea2[id].scrollHeight + 'px';
         desaturator2[id].style.display = 'block';
         desaturator2[id].classList.add('desaturator2');
         setTimeout(function() {codearea2[id].classList.add('desaturate');}, 10);
@@ -46,7 +46,7 @@ function indicatorDisplay(b,id) {
     }
     var c = overlays2[id];
     if (!indListener[id]) {
-      // desaturator2[id].addEventListener("click",function() { indicatorDisplay(0,id); });
+      desaturator2[id].addEventListener("click",function() { if (mouse) indicatorDisplay(0,id); });
       desaturator2[id].addEventListener("touchstart",function(evt) { evt.stopPropagation(); });
       desaturator2[id].addEventListener("touchmove",function(evt) { evt.stopPropagation(); });
       desaturator2[id].addEventListener("touchend",function(evt) { evt.stopPropagation(); evt.preventDefault(); indicatorDisplay(0,id); });
@@ -61,10 +61,11 @@ function indicatorDisplay(b,id) {
         ctx.translate(0, -codearea2[id].scrollTop);
         ctx.beginPath();
         var textwidth = ctx.measureText(reasons[i]);
+        
         var textleft = xy.left;
         var texttop = xy.top + mn.offsetHeight + 4;
         if (textleft + textwidth.width > codearea2[id].offsetWidth)
-            textleft = codearea2[id].offsetWidth - 2 - textwidth.width;
+            textleft = codearea2[id].offsetWidth - 2 - textwidth.width;        
         ctx.fillStyle = "pink";
         ctx.fillRect(textleft, texttop + 3, textwidth.width + 1, 14);
         ctx.fill();
@@ -77,7 +78,7 @@ function indicatorDisplay(b,id) {
         ctx.restore();
         tiles[i].classList.add('highlight');
         var t = tiles[i];
-        while (true) {          
+        while (true) {
           if (!t) { break; }
           if (t.classList.contains("codearea")) { break; }
           t.oldZ = t.style.zIndex;
@@ -96,7 +97,7 @@ function indicatorDisplay(b,id) {
     var tiles = codearea2[id].getElementsByClassName('highlight');
     while (tiles.length > 0) {
         var t = tiles[0];
-        while (true) {          
+        while (true) {
           if (!t) { break; }
           if (t.classList.contains("codearea")) { break; }
           t.style.zIndex = t.oldZ;
@@ -168,7 +169,7 @@ window.addEventListener('load', function(ev) {
                 + "this page in a recent version of Firefox, Chrome, "
                 + "or Internet Explorer.");
         }
-    }    
+    }
 });
 
 var key1 = "1".charCodeAt(0);
@@ -229,7 +230,7 @@ minigrace.stdout_write = function(value) {
         // history.replaceState(obj, "", generateHash(obj));
     // }
 // }
-for (var i = 0; i < windowMax; i++) {  
+for (var i = 0; i < windowMax; i++) {
   var bgMinigrace = new Worker("scripts/background.js");
   // bgMinigrace.postMessage({CID: i});
   // bgMinigrace.setup();
@@ -252,9 +253,9 @@ for (var i = 0; i < windowMax; i++) {
   bgMinigrace2[i] = bgMinigrace;
 }
 
-tryLog("Setup::" + windowMax);
+// console.log("Setup::" + windowMax);
 function setup() {
-  for (var i = 0; i < windowMax; i++) {    
+  for (var i = 0; i < windowMax; i++) {
     var editor = ace.edit("code_txt_real"+i);
     var GraceMode = require("ace/mode/grace").Mode;
     editor.getSession().setMode(new GraceMode());
@@ -267,18 +268,18 @@ function setup() {
     editor.setFontSize('14px');
     editor.commands.bindKeys({"ctrl-l":null, "ctrl-shift-r":null, "ctrl-r":null, "ctrl-t":null})
     editor2[i] = editor;
-    
+
     editor3[i] = document.getElementById('code_txt_real' + i);
     editor3[i].style.position = 'absolute';
     editor3[i].style.top = codearea2[i].offsetTop + 'px';
     editor3[i].style.left = codearea2[i].offsetLeft + 'px';
     editor3[i].style.display = "block";
     editor3[i].style.visibility = 'hidden';
-    
-    tryLog("Added Editor2: " + i + ", " + editor2[i]);
-    
+
+    // console.log("Added Editor2: " + i + ", " + editor2[i]);
+
     editor.lastChange = new Date().getTime();
-    editor.changedSinceLast = false;    
+    editor.changedSinceLast = false;
     editor.on("change", function(ev) {
       editor.lastChange = new Date().getTime();
       editor.changedSinceLast = true;
@@ -293,51 +294,41 @@ function setup() {
         if (editor2[i].lastChange + 1000 > new Date().getTime()) { continue; }
         var editor = editor2[i];
         editor.lastChange = new Date().getTime();
-        editor.changeSinceLast = false;
+        editor.changedSinceLast = false;
         if (editor.getValue() == document.getElementById('gracecode'+i).value) {
           // document.getElementById('indicator').style.background = 'green';
           editor.getSession().clearAnnotations();
           return;
         }
-        
+
         bgMinigrace2[i].onmessage = function(ev) {
           if (!codearea2[i].classList.contains("shrink"))
             return;
-          if (!ev.data.success) {          
+          if (!ev.data.success) {
             showErrorInEditor(ev.data.stderr,i)
             return;
           }
           editor.getSession().clearAnnotations();
           rebuildTilesInBackground(ev.data.output,i);
-          document.getElementById('gracecode'+i).value = editor2[i].getValue();          
+          document.getElementById('gracecode'+i).value = editor2[i].getValue();
         }
         bgMinigrace2[i].postMessage({action: "compile", mode: "json",
           modname: "main", source: editor2[i].getValue() + chunkLine});
-        
-        
+
+
       }
   }, 1000);
   minigrace.trapErrorsFunc = minigrace.trapErrors;
   minigrace.trapErrors = function(func) {
-    // console.log(func);
     if (minigraceTerminationCounter == 1) {
       mgtSetup();
     }
-    
+
     if (minigraceTerminationCounter > 1) {
       mgtCollect(func);
       return;
     }
-    
-    
-    // if (minigrace.stopRunning) { 
-      // minigrace.stopRunning = 0;
-      // return;
-    // } else {
-      // minigrace.stopRunning = 0;
-    // }
-    
+
     minigrace.trapErrorsFunc(func);
-    // weakTerminationChecker(minigrace.windex);
   };
 }

@@ -329,15 +329,16 @@ function generateCode(id) {
         }
         tb.value = tb.value + "\n";
     }
+    // console.log("TB: " + tb.value);
     var blob = new Blob([tb.value + chunkLine], {type: "text/x-grace;charset=utf-8"});
     if (document.getElementById('downloadlink'+ id).href)
         URL.revokeObjectURL(document.getElementById('downloadlink'+id).href);
-    var href = URL.createObjectURL(blob);    
+    var href = URL.createObjectURL(blob);
     document.getElementById('downloadlink'+id).href = href;
-    
-    var dl2 = document.getElementsByClassName("downloadlink2"+id);    
+
+    var dl2 = document.getElementsByClassName("downloadlink2"+id);
     for (var i = 0; i < dl2.length; i++) {
-       dl2[i].setAttributeNS("http://www.w3.org/1999/xlink", "href",href);       
+       dl2[i].setAttributeNS("http://www.w3.org/1999/xlink", "href",href);
     }
 }
 
