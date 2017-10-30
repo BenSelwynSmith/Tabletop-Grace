@@ -8,8 +8,6 @@
     margin-right: 2px;
 }
 
-
-
 .window_menu {
   width: 250px;
   height: 1px;
@@ -174,13 +172,14 @@ html, body {
     top: 5%;
     position: relative;
     z-index: 1005;
+    border:solid 1px;
 }
 .outputarea textarea {
     height: 100%;
     width: 100%;
     fill-opacity: 0;
     z-index: 1005;
-    border:none;
+    border:solid 1px;
     position: absolute;
     left: 0;
     top: 0;
@@ -344,6 +343,8 @@ input {
     /* opacity: 0; */
     transition: opacity 0.3s;
     margin-left: 2px;
+    width: 20px;
+    text-align: center;
 }
 /* .parameter-adder:hover, .argument-adder:hover { */
     /* background: #0f0; */
@@ -747,6 +748,7 @@ ul.popup-menu {
     list-style-type: none;
     padding-left: 0;
     z-index: 300;
+    font-size: large;
 }
 ul.popup-menu li {
     display: block;
