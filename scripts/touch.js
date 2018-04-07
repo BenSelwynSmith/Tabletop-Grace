@@ -28,6 +28,7 @@ var currentFocus;
 var pieMenuEndDelay = 100;
 var shortPress = 200;
 var longPress = 400;
+var longPressPie = 300;
 
 var aceContent;
 
@@ -120,10 +121,14 @@ function addWMenuTouch() {
   blank.addEventListener('touchmove', function(event) { event.preventDefault(); });
   blank.addEventListener('touchend', function(event) { event.preventDefault(); });
 
-
+  
   for (var i = 0; i < 4; i++) {
     var id = "svg_" + i;
     var elem = document.getElementById(id);
+    if (system_mode == 1) {
+      elem.parentNode.removeChild(elem);
+      continue;
+    }
     elem.addEventListener('touchstart', function(event) { event.preventDefault(); });
     elem.addEventListener('touchmove', function(event) { event.preventDefault(); });
     elem.addEventListener('touchend', function(event) { wMenuEnd(event); });
@@ -402,7 +407,7 @@ function pieTouchStart(event) {
       var x = event.targetTouches[i].clientX;
       var y = event.targetTouches[i].clientY;
 
-      pieMenuTouches[id] = {x:x, y:y, updates:0, target:event.targetTouches[i].target, id:id, windex: windex}      
+      pieMenuTouches[id] = {x:x, y:y, updates:0, target:event.targetTouches[i].target, id:id, windex: windex, time:Date.now()}      
     }
   }    
 }
@@ -549,7 +554,7 @@ function pieTouchDelayedEnd(id,t) {
   // console.log("Windex: " + windex);
   var count = 0;
   for (var i in pieMenuTouches) {
-    var p2 = [pieMenuTouches[i].x,pieMenuTouches[id].y];
+    var p2 = [pieMenuTouches[i].x,pieMenuTouches[i].y];
 
     // console.log("DelayEnd: " + id + ", Dist:" + (dist < secMenuDistance) + ", oid: " + i + ", done: " +
         // pieMenuTouches[i].done + ", dying: " + pieMenuTouches[i].dying);
@@ -574,7 +579,12 @@ function pieTouchDelayedEnd(id,t) {
   if (t) {
     showKeyboard(pieMenuTouches[id].target, 1, windex);
   } else {
-    showPieMenu(p1[0],p1[1],windex);
+    if (system_mode == 1 && Date.now() - pieMenuTouches[id].time > longPressPie) {
+      showSecMenu(p1[0],p1[1],windex);
+    } else {
+      showPieMenu(p1[0],p1[1],windex);
+    }
+    
   }
 
   delete pieMenuTouches[id];

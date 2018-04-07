@@ -533,12 +533,14 @@ function createChunkFromJSON(chunk,id) {
         runningTop += tiles[i].offsetHeight;
         tiles[i].style.left = chunk.x;
         // tiles2[id].push(tiles[i]);
-        // tiles[i].windex = id;        
+        // tiles[i].windex = id;
     }
-    
+
 }
-function loadJSON(str,id) {    
-    clearCode(1,id);
+function loadJSON(str,id,override) {
+    if (!override) {
+      clearCode(1,id);
+    }
     var obj = JSON.parse(str);
     var dialect = document.getElementById('dialect');
     for (var i=0; i<dialect.options.length; i++) {
@@ -562,10 +564,12 @@ function loadJSON(str,id) {
                         renameVar(el.value, el.value, el);
                         el.oldName = el.value;
                     }
-            });    
-    Array.prototype.forEach.call(codearea2[id].getElementsByClassName('tile'), function(el) { 
-      // // console.log(el.tagName + ", " + el.parentNode.classList);      
+            });
+    // tiles = [];
+    Array.prototype.forEach.call(codearea2[id].getElementsByClassName('tile'), function(el) {
+      // // console.log(el.tagName + ", " + el.parentNode.classList);
       tiles2[id].push(el);
+      // tiles.push(el);      
       el.windex = id;
     });
     Array.prototype.forEach.call(tiles2[id], attachTileBehaviour);
@@ -573,7 +577,7 @@ function loadJSON(str,id) {
     if (!codearea2[id].classList.contains('shrink')) {
         updateTileIndicator(id);
         jsonLoadFuncs.forEach(function(f) {f();});
-        // Array.prototype.forEach.call(codearea2[id].getElementsByTagName('input'), blinkCoddleInputs);        
+        // Array.prototype.forEach.call(codearea2[id].getElementsByTagName('input'), blinkCoddleInputs);
     }
     return obj;
 }
@@ -591,6 +595,17 @@ function loadFile() {
           checkpointSave(id);
       });
     }
+}
+function loadTiles(blob,id) {
+  var reader = new FileReader();
+  reader.readAsText(blob);
+  reader.addEventListener("load", function() {
+      minigrace.mode = "json";
+      minigrace.compile(reader.result);
+      minigrace.mode = "js";
+      loadJSON(minigrace.generated_output,id,true);
+      checkpointSave(id);
+  });
 }
 function loadSample(k,id) {
     if (!k || k == 'Select sample')
@@ -646,7 +661,7 @@ function loadSample(k,id) {
         loadingBody.innerHTML = 'Loading sample "' + n + '": compiling. <br />This may take a while.';
         progressBar.style.width = "33%";
         bgMinigrace2[id].postMessage({action: "compile", mode: "json",
-            modname: "main", source: req.responseText});        
+            modname: "main", source: req.responseText});
     } else {
         alert("Failed to retrieve sample.");
         loading.parentNode.removeChild(loading);

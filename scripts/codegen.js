@@ -341,4 +341,41 @@ function generateCode(id) {
        dl2[i].setAttributeNS("http://www.w3.org/1999/xlink", "href",href);
     }
 }
+function sortChunksByFlag(id,flag) {
+    var classes = [];
+    var defs = [];
+    var others = [];
+    for (var i=0; i<codearea2[id].children.length; i++) {
+        var child = codearea2[id].children[i];
+        if (child.prev != false)
+            continue;
+        if (flag != -1 && child.flag != flag) { continue; }
+        if (child.classList.contains('class'))
+            classes.push(child);
+        else if (child.classList.contains('defdec'))
+            defs.push(child);
+        else
+            others.push(child);
+    }
+    return classes.concat(defs).concat(others);
+}
+
+function generateStringCode(id,flag) {
+  var dialect = document.getElementById('dialect').value;
+  var tb = "";
+  if (dialect)
+      tb = 'dialect "' + dialect + '"\n';
+  var chunkLine = "// chunks:";
+  var chunks = sortChunksByFlag(id,flag);
+  for (var i=0; i<chunks.length; i++) {
+      var child = chunks[i];
+      chunkLine += " " + child.style.left + "," + child.style.top;
+      while (child) {
+          tb = tb + generateNodeCode(child, 'assignment') + '\n';
+          child = child.next;
+      }
+      tb = tb + "\n";
+  }
+  return tb + chunkLine;
+}
 
