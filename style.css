@@ -18,6 +18,35 @@
   z-index:50;
 }
 
+.huge_letter {
+  pointer-events: none;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  position: absolute;
+  margin-top: 0px;
+  margin-left: 0px;
+  font-size: 300px;
+  opacity: 0.1;
+  text-align: center;
+  font-family: cursive;
+}
+
+.title_text {
+  color: black;
+  opacity: 0.5;
+  text-align: center;
+  font-size: 40px;
+  font-family: Arial;
+  left: 50%;
+  pointer-events: none;
+  transform: translate(-50%);
+  width: 100%;
+  position: relative;
+  top: 0%;
+  margin: 0px;
+}
+
 @keyframes window_menu_anim_h {
   0% {height: 1px;}
   100% {height: 80px;}
@@ -730,8 +759,18 @@ input {
     font-size: 14px;
     margin-left: -1px;
 }
-#acknowledgements {
-    font-size: 10px;
+.acknowledgements {
+    color: black;    
+    top: 50%;
+    text-align: center;
+    font-size: 14px;
+    font-family: Arial;
+    position: absolute;
+    left: 50%;
+    pointer-events: none;
+    margin-left: 0px;
+    transform: translate(-50%, -50%);
+    width:100%;
 }
 #toolbox .tile.some-dialects {
     display: none;

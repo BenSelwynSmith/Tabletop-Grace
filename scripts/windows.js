@@ -82,17 +82,58 @@ function mobileAndTabletCheck() {
   return check;
 }
 
-function windowSetup(mode) {
-  if (setup_done != 0) { return; }
-  mobile = mobileAndTabletCheck();
-  if (!mobile && navigator.maxTouchPoints > 5) {
-    mode = 0;
+function modeSetup() {
+  var mode = 0;
+  var wHash = window.location.hash;
+  if (wHash) {
+    wHash = wHash.substring(1);
+    if (wHash == "mobile") {
+      mobile = true;
+      mode = 1
+      Array.prototype.forEach.call(document.getElementsByClassName('title_text'), function(el) {
+      if (!el.innerHTML.startsWith("Tap")) {
+        el.innerHTML = "Mobile Grace";
+      }});
+      document.title = "Mobile Grace";
+    } else if (wHash == "table") {
+      mode = 0;
+    }
+  } else {
+    mobile = mobileAndTabletCheck();
+    if (!mobile && navigator.maxTouchPoints > 5) {
+      //Tabletop
+      mode = 0;
+    }
   }
   system_mode = mode;
+  // console.log("Mode Setup: " + mode + " " + system_mode);
+  windowCon = document.getElementById('windowContainer')
+  if (system_mode == 1) {    
+    var wins = [windowCon, document.getElementById("Window_0")];
+    for (var i = 0; i < wins.length; i++) {    
+      wins[i].style.width = "100%";
+      wins[i].style.height = "100%";
+      wins[i].style.left = "0px";
+      wins[i].style.top = "0px";
+    }
+    wins[1].style.display = "";
+    removeAll(document.getElementsByClassName("huge_letter"));
+  }
+  // console.log("windowCon: " + windowCon);
+}
+
+function removeAll(elems) {
+  for (var i = 0; i < elems.length; ) {
+    elems[i].parentNode.removeChild(elems[i]);
+  }
+}
+
+function windowSetup() {
+  if (setup_done != 0) { return; }
   setup_done = 1;
-  
-  
-  if (mode == 1) {
+
+  if (system_mode == 1) {
+    ws_disabled = 0;
     if (!mobile) { mouse = 1; ws_disabled = 1; }
     windowMax = 1;
     pieMenuMoveThresholdDistance *= mobileDistanceMod;
@@ -102,20 +143,15 @@ function windowSetup(mode) {
     segMoveThresholdDistance *= mobileDistanceMod;
   }
   addWMenuTouch();
-  windowCon = document.getElementById('windowContainer');
-  if (mode == 1) {
-    windowCon.style.width = "100%";
-    windowCon.style.height = "100%";
-    windowCon.style.left = "0px";
-    windowCon.style.top = "0px";
-  }
 
   //Setup initial dialect (Adds some tiles)
   addDialectMethods(document.getElementById('dialect').value);
 
   for (var i = 0; i < windowMax; i++) {
     addBlockWindow(i);
-    windows[i].style.display = "none";
+    if (!mobile) {
+      windows[i].style.display = "none";
+    }
     windows[i].windex = i;
     windows[i].setAttribute('class', "code-window");
     codearea2[i] = windows[i].children[0];
@@ -173,40 +209,11 @@ function windowSetup(mode) {
     tiles2[i] = [];
   }
 
-  // codearea2[0].addEventListener('click', function(event) {
-    // showPieMenu(event.clientX, event.clientY, 0, 1);
-  // });
-
   window.onresize = function() {
     if (windowsActive) {
       arrangeWindows();
     }
   }
-  // canvas = document.getElementById('standard-canvas');
-  // canvas.addEventListener('touchend', expandOutput);
-
-
-
-  //Test Code
-  // windowMenuClick(0,1,1);
-  // windowMenuClick(1,2,1);
-  // mouse = 1;
-  // showSecMenu(400,300,0);
-  // showSecMenu(900,200,1);
-
-
-  // testSetup(1);
-  // showPieMenu(300,300,0);
-  // showSecMenu(600,600,0);
-  //
-  // try {
-  // windowMenuClick(0,3,1);
-  // } catch (e) {}
-  // windowMenuClick(0,1,1);
-  // windowMenuClick(0,3,1);
-  // showSecMenu(400,300,0);
-  // showSecMenu(900,200,1);
-  // mouse = 1;
 
   //There might be a reason this is not in a loop, or it might be due to a closure failure
   getCode[0] = function() {
@@ -236,15 +243,15 @@ function windowSetup(mode) {
     };
   }
 
-  if (system_mode == 1) {
-    // windowMenuClick(idx,rid,state,pos)
-    windowMenuClick(0,0,1,1);
-    windowMenuClick(0,0,1,1);
-    // windowMenuClick = null;
-  }
+  // if (system_mode == 1) {
+    // windowMenuClick(0,0,1,1);
+    // windowMenuClick(0,0,1,1);
+  // }
 
-  // document.getElementById('standard-canvas').getContext("2d").clearRect(0,0,200,200)
-  // document.getElementById('standard-canvas').getContext("2d").clearRect = function() { };
+  if (ws_disabled != 1 && !socket_attempt) {
+    ws_startWebSocket();
+    // socket_attempt = true;
+  }
 }
 
 function fakeDownload(id) {
@@ -252,17 +259,11 @@ function fakeDownload(id) {
   document.getElementById('downloadlink' + id).dispatchEvent(event);
 }
 
-// function // console.log(msg) {
-  // if (debug) {
-    // // console.log(msg);
-  // }
-// }
-
 function getActiveWindows() {
   var rep = [];
-  for (var i = 0; i < windowsMax; i++) {
+  for (var i = 0; i < windowMax; i++) {
     if (windows[i].style.display != "none") {
-      rep.push("" + i);
+      rep.push("" + (i+1));
     }
   }
   return rep;
@@ -461,11 +462,11 @@ function stringifyAllTiles(windex) {
 
 function stringifyTiles(tile,windex) {
   flagAllConnectedTiles(windex,tile,1);
-  
+
   var data = generateStringCode(windex,1);
-  
+
   resetMarkOnTiles(windex);
-  
+
   return data;
 }
 
@@ -481,7 +482,7 @@ function flagAllConnectedTiles(id,tile,flag) {
   }
 
   findAllTiles(tile, tiles, 0);
-  
+
   for (var i = 0; i < tiles.length; i++) {
     tiles[i].flag = flag;
   }
@@ -647,11 +648,8 @@ function propComparator(prop) {
 function bringToFront(t) {
 }
 
-function clearCode(b,id) {
-  // console.log("ClearCode");
-
+function clearCode(id) {
   var children = codearea2[id].children;
-  // console.log(children.length);
   for (var i = 0; i < codearea2[id].children.length; i++) {
     if (children[i].classList.contains('tile')) {
       codearea2[id].removeChild(children[i]);
@@ -659,15 +657,11 @@ function clearCode(b,id) {
     }
   }
   tiles2[id] = [];
-  // if (!b) {
-    generateCode(id);
-  // }
-
+  generateCode(id);
 
   Array.prototype.forEach.call(codearea2[id].getElementsByClassName('errorPie'), function(el) {
     el.style.fill = 'green';
   });
-
 }
 
 
@@ -741,40 +735,37 @@ function rotateWindow(s,t) {
   }
 }
 
-function addBlockWindow(id) {
-  // console.log("addBlockWindow " + id);
+function addBlockWindow(id) {  
   var w = 1920/1080;
   var h = 1080/1920;
-  if (windowCount < windowMax) {
-    // var iframe = document.createElement('iframe');
-    // iframe.setAttribute('src', "code.html");
-    var iframe = document.getElementById(windowIdName + id);
-    // if (!iframe) { return; }
-    // document.body.appendChild(iframe);4
-    if (id == 0 || id == 3) {
-      iframe.style.top = "10%";
-      iframe.style.left = "15%";
-      iframe.style.width = "70%";
-      iframe.style.height = "80%";
-      iframe.rot = 0;
-      if (id == 3) {
-        iframe.style.left = "45%";
-        iframe.style.width = "50%";
-        iframe.style.transform = "rotate(180deg)";
-        iframe.rot = 180;
-      }
-    } else {
-      iframe.style.top = "-20%";
-      iframe.style.left = "30%";
-      iframe.style.width = (70 * h) + "%";
-      iframe.style.height = (80 * w) + "%";
-      if (id == 1) {
-        iframe.style.transform = "rotate(90deg)";
-        iframe.rot = 90;
-      }
-      if (id == 2) {
-        iframe.style.transform = "rotate(-90deg)";
-        iframe.rot = -90;
+  if (windowCount < windowMax) {    
+    var iframe = document.getElementById(windowIdName + id);  
+    if (!mobile) {
+      if (id == 0 || id == 3) {
+        iframe.style.top = "10%";
+        iframe.style.left = "15%";
+        iframe.style.width = "70%";
+        iframe.style.height = "80%";
+        iframe.rot = 0;
+        if (id == 3) {
+          iframe.style.left = "45%";
+          iframe.style.width = "50%";
+          iframe.style.transform = "rotate(180deg)";
+          iframe.rot = 180;
+        }
+      } else {
+        iframe.style.top = "-20%";
+        iframe.style.left = "30%";
+        iframe.style.width = (70 * h) + "%";
+        iframe.style.height = (80 * w) + "%";
+        if (id == 1) {
+          iframe.style.transform = "rotate(90deg)";
+          iframe.rot = 90;
+        }
+        if (id == 2) {
+          iframe.style.transform = "rotate(-90deg)";
+          iframe.rot = -90;
+        }
       }
     }
     // iframe.style.position = "fixed";
@@ -919,10 +910,6 @@ function windowMenuClick(idx,rid,state,pos) {
   //  Tap  -> Rotate to rid
   //  Hold -> Hide
   //Also fix window menu opening and closing
-  if (ws_disabled != 1 && !socket_attempt) {
-    ws_startWebSocket();
-    socket_attempt = true;
-  }
 
 
   //Tap or Hold?

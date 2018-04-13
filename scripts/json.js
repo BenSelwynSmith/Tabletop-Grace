@@ -539,7 +539,7 @@ function createChunkFromJSON(chunk,id) {
 }
 function loadJSON(str,id,override) {
     if (!override) {
-      clearCode(1,id);
+      clearCode(id);
     }
     var obj = JSON.parse(str);
     var dialect = document.getElementById('dialect');

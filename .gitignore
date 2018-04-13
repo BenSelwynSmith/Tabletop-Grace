@@ -2,6 +2,7 @@
 *.png
 *.js
 !ace/mode-grace.js
+!scripts/client-ws.js
 !scripts/codegen.js
 !scripts/dialects.js
 !scripts/drag.js
