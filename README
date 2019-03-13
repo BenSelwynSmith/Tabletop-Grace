@@ -1,9 +1,12 @@
 Tabletop Grace is a conversion of Tiled Grace for use with interactive touch
 tables and is currently being tested on the Promethean ActivTable.
 
-The current live version can be found at:
-<http://ecs.vuw.ac.nz/~selwynbenj/tabletopgrace>
-Keep in mind that a lot of interface elements won't work with keyboard and mouse.
+An extended version of Tabletop Grace that supports multiple devices and cross
+device communication can be found here:
+<https://multi-device-grace.herokuapp.com/mdg>
+For the tabletop version:
+<https://multi-device-grace.herokuapp.com/mdg/tabletopgrace>
+
 
 Tiled Grace can be found at:
 GitHub:
